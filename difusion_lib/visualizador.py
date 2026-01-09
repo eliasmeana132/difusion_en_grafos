@@ -108,33 +108,24 @@ class VisualizadorPelado:
                 mapeo_trazas.append({"sim": sim_nombre, "capa": i, "indices": indices_trazas})
                 trace_counter += num_trazas_en_fig
 
-        botones_sim = []
-        for sim_nombre in diccionario_simulaciones.keys():
-            visibilidad = [False] * len(fig_final.data)
-            visibilidad[0] = True
-            for m in mapeo_trazas:
-                if m["sim"] == sim_nombre and m["capa"] == 0:
-                    for idx in m["indices"]: visibilidad[idx] = True
-            botones_sim.append(dict(label=sim_nombre, method="update", args=[{"visible": visibilidad}, {"title": f"Red: {sim_nombre} | Capa 1"}]))
-
         botones_capas = []
-        max_capas = max(len(v) for v in diccionario_simulaciones.values())
-        for c in range(max_capas):
-            visibilidad = [False] * len(fig_final.data)
-            visibilidad[0] = True
-            for m in mapeo_trazas:
-                if m["capa"] == c:
-                    for idx in m["indices"]: visibilidad[idx] = True
-            botones_capas.append(dict(label=f"Capa {c+1}", method="update", args=[{"visible": visibilidad}]))
+        
+        for sim_nombre in diccionario_simulaciones.keys():
+            max_capas = len(diccionario_simulaciones[sim_nombre])
+            for c in range(max_capas):
+                visibilidad = [False] * len(fig_final.data)
+                visibilidad[0] = True
+                for m in mapeo_trazas:
+                    if m["sim"] == sim_nombre and m["capa"] == c:
+                        for idx in m["indices"]: visibilidad[idx] = True
+                botones_capas.append(dict(label=f"{sim_nombre} - Capa {c+1}", method="update", args=[{"visible": visibilidad}, {"title": f"Red: {sim_nombre} | Capa {c+1}"}]))
 
         fig_final.update_layout(
             updatemenus=[
-                dict(buttons=botones_sim, direction="down", showactive=True, x=0.05, xanchor="left", y=1.08, yanchor="top", bgcolor="white"),
-                dict(buttons=botones_capas, direction="down", showactive=True, x=0.35, xanchor="left", y=1.08, yanchor="top", bgcolor="white")
+                dict(buttons=botones_capas, direction="down", showactive=True, x=0.05, xanchor="left", y=1.08, yanchor="top", bgcolor="white")
             ],
             annotations=[
-                dict(text="<b>RED:</b>", showarrow=False, x=0.05, xref="paper", y=1.12, yref="paper", align="left"),
-                dict(text="<b>CAPA:</b>", showarrow=False, x=0.35, xref="paper", y=1.12, yref="paper", align="left")
+                dict(text="<b>CAPA:</b>", showarrow=False, x=0.05, xref="paper", y=1.12, yref="paper", align="left")
             ],
             title=dict(text="Panel Maestro de Difusión", x=0.5, y=0.95),
             scene=dict(xaxis=dict(visible=False), yaxis=dict(visible=False), zaxis=dict(visible=False), aspectmode='data'),
@@ -142,7 +133,12 @@ class VisualizadorPelado:
             showlegend=False
         )
 
-        if len(mapeo_trazas) > 0:
-            for i in mapeo_trazas[0]["indices"]: fig_final.data[i].visible = True
+        if len(botones_capas) > 0:
+            initial_vis = [False] * len(fig_final.data)
+            initial_vis[0] = True
+            first_button = botones_capas[0]
+            first_button_vis = first_button['args'][0]['visible']
+            for i, visible in enumerate(first_button_vis):
+                fig_final.data[i].visible = visible
         
         fig_final.write_html(os.path.join(ruta_base, nombre_archivo))

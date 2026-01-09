@@ -152,7 +152,8 @@ def ejecutar_estudio_completo():
     print("\n" + "="*50)
     print("CONSOLIDANDO MASTER DASHBOARD (2 NIVELES)...")
     VisualizadorPelado.exportar_mega_dashboard(
-        mega_recolector, 
+        mega_recolector, Python Paste And Indent
+
         carpeta_maestra, 
         "panel_control_total.html"
     )
