@@ -1,0 +1,40 @@
+# --- Carpetas de Resultados (Tus peticiones específicas) ---
+simulaciones/
+test_notebook/
+estudio_completo/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+
+# --- Distribución / Empaquetado (setup.py) ---
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Jupyter Notebook ---
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# --- Archivos de Sistema ---
+.DS_Store
+Thumbs.db
+
+# --- Visualización (Opcional, si no quieres subir archivos HTML pesados) ---
+*.html
