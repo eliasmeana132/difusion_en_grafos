@@ -17,72 +17,27 @@ class VisualizadorPelado:
         for edge in G.edges():
             x0, y0, z0 = pos_3d[edge[0]]
             x1, y1, z1 = pos_3d[edge[1]]
-            
             edge_x.extend([x0, x1, None])
             edge_y.extend([y0, y1, None])
             edge_z.extend([z0, z1, None])
-
             vx, vy, vz = x1 - x0, y1 - y0, z1 - z0
             length = np.sqrt(vx**2 + vy**2 + vz**2)
-            
             if length > 0:
-                a_x.append(x0 + 0.8 * vx)
-                a_y.append(y0 + 0.8 * vy)
-                a_z.append(z0 + 0.8 * vz)
-                
-                a_u.append(vx / length)
-                a_v.append(vy / length)
-                a_w.append(vz / length)
+                a_x.append(x0 + 0.8 * vx); a_y.append(y0 + 0.8 * vy); a_z.append(z0 + 0.8 * vz)
+                a_u.append(vx / length); a_v.append(vy / length); a_w.append(vz / length)
 
-        trace_edges = go.Scatter3d(
-            x=edge_x, y=edge_y, z=edge_z, 
-            line=dict(width=1, color='#888'), 
-            hoverinfo='none', mode='lines',
-            name='Aristas'
-        )
-
-        trace_arrows = go.Cone(
-            x=a_x, y=a_y, z=a_z,
-            u=a_u, v=a_v, w=a_w,
-            sizeref=0.05,       
-            anchor="tail",
-            showscale=False,
-            colorscale=[[0, '#666'], [1, '#666']], 
-            opacity=0.6,
-            name='Dirección'
-        )
+        trace_edges = go.Scatter3d(x=edge_x, y=edge_y, z=edge_z, line=dict(width=1, color='#888'), hoverinfo='none', mode='lines', name='Aristas')
+        trace_arrows = go.Cone(x=a_x, y=a_y, z=a_z, u=a_u, v=a_v, w=a_w, sizeref=0.05, anchor="tail", showscale=False, colorscale=[[0, '#666'], [1, '#666']], opacity=0.6, name='Dirección')
 
         masas = [G.nodes[n]['val'] for n in G.nodes()]
         trace_nodes = go.Scatter3d(
-            x=[pos_3d[n][0] for n in G.nodes()],
-            y=[pos_3d[n][1] for n in G.nodes()],
-            z=[pos_3d[n][2] for n in G.nodes()],
+            x=[pos_3d[n][0] for n in G.nodes()], y=[pos_3d[n][1] for n in G.nodes()], z=[pos_3d[n][2] for n in G.nodes()],
             mode='markers',
-            marker=dict(
-                symbol='circle', 
-                size=[2 + (m * 8) for m in masas], 
-                color=masas, 
-                colorscale='YlOrRd',
-                line=dict(color='black', width=0.5),
-                colorbar=dict(title='Masa', thickness=15)
-            ),
-            text=[f"Nodo: {n}<br>Masa: {m:.4f}" for n, m in zip(G.nodes(), masas)],
-            hoverinfo='text',
-            name='Nodos'
+            marker=dict(symbol='circle', size=[2 + (m * 8) for m in masas], color=masas, colorscale='YlOrRd', line=dict(color='black', width=0.5), showscale=True, colorbar=dict(title='Masa', thickness=15)),
+            text=[f"Nodo: {n}<br>Masa: {m:.4f}" for n, m in zip(G.nodes(), masas)], hoverinfo='text', name='Nodos'
         )
-
         fig = go.Figure(data=[trace_edges, trace_arrows, trace_nodes])
-        fig.update_layout(
-            title=titulo,
-            scene=dict(
-                xaxis=dict(visible=False),
-                yaxis=dict(visible=False),
-                zaxis=dict(visible=False),
-                aspectmode='data' 
-            ),
-            margin=dict(l=0, r=0, b=0, t=40),
-            showlegend=False
-        )
+        fig.update_layout(title=titulo, scene=dict(xaxis=dict(visible=False), yaxis=dict(visible=False), zaxis=dict(visible=False), aspectmode='data'), margin=dict(l=0, r=0, b=0, t=40), showlegend=False)
         return fig
 
     @staticmethod
@@ -91,91 +46,103 @@ class VisualizadorPelado:
         if fig:
             ruta_3d = os.path.join(ruta_base, "renders_3d")
             os.makedirs(ruta_3d, exist_ok=True)
-            titulo_archivo = titulo.replace(' ', '_')
-            fig.write_html(os.path.join(ruta_3d, f"{titulo_archivo}.html"))
+            fig.write_html(os.path.join(ruta_3d, f"{titulo.replace(' ', '_')}.html"))
 
     @staticmethod
     def exportar_dashboard_interactivo(figuras_lista, titulos_lista, ruta_base, nombre_archivo="dashboard_interactivo.html"):
-        if not figuras_lista: return
-
-        fig_final = go.Figure()
-        traces_por_fig = [len(f.data) for f in figuras_lista]
-        total_traces = sum(traces_por_fig)
-        
-        current_trace_idx = 0
-        botones = []
-
-        for i, (fig, titulo) in enumerate(zip(figuras_lista, titulos_lista)):
-            num_traces = len(fig.data)
-            for trace in fig.data:
-                trace.visible = (i == 0)
-                fig_final.add_trace(trace)
-
-            visibilidad = [False] * total_traces
-            for j in range(current_trace_idx, current_trace_idx + num_traces):
-                visibilidad[j] = True
-
-            botones.append(dict(
-                label=titulo,
-                method="update",
-                args=[{"visible": visibilidad},
-                      {"title": f"Visualización: {titulo}"}]
-            ))
-            current_trace_idx += num_traces
-
-        fig_final.update_layout(
-            updatemenus=[{
-                "buttons": botones,
-                "direction": "down",
-                "showactive": True,
-                "x": 0.05, "xanchor": "left",
-                "y": 1.1, "yanchor": "top"
-            }],
-            title=titulos_lista[0],
-            scene=dict(xaxis=dict(showbackground=False),
-                       yaxis=dict(showbackground=False),
-                       zaxis=dict(showbackground=False))
-        )
-
-        ruta_final = os.path.join(ruta_base, nombre_archivo)
-        fig_final.write_html(ruta_final)
+        VisualizadorPelado.exportar_mega_dashboard({"Resultados": figuras_lista}, ruta_base, nombre_archivo)
 
     @staticmethod
-    def renderizar(G, titulo, ruta_base, exportar_gephi=True, mostrar_grafico=False, 
-                  k_layout=None, alfa_aristas=0.3, tamano_flecha=15):
+    def renderizar(G, titulo, ruta_base, exportar_gephi=True, mostrar_grafico=False, k_layout=None, alfa_aristas=0.3, tamano_flecha=15):
         if len(G.nodes()) == 0: return
-        
         ruta_imagenes = os.path.join(ruta_base, "imagenes_grafos")
-        ruta_gephi = os.path.join(ruta_base, "archivos_gephi")
         os.makedirs(ruta_imagenes, exist_ok=True)
-        if exportar_gephi: os.makedirs(ruta_gephi, exist_ok=True)
-
         plt.figure(figsize=(14, 10))
-        k_val = k_layout if k_layout else 0.3 
-        posicion = nx.spring_layout(G, k=k_val, seed=42)
-        
+        posicion = nx.spring_layout(G, k=k_layout if k_layout else 0.3, seed=42)
         masas = [G.nodes[n]['val'] for n in G.nodes()]
-        tamanos = [100 + (m * 300) for m in masas] 
-        
-        nodos = nx.draw_networkx_nodes(G, posicion, node_size=tamanos, node_color=masas, 
-                                       cmap=plt.cm.YlOrRd, edgecolors='black', linewidths=0.8)
-        
-        nx.draw_networkx_edges(G, posicion, alpha=alfa_aristas, arrows=True, arrowsize=tamano_flecha,
-                               arrowstyle='-|>', edge_color='gray', connectionstyle='arc3,rad=0.1')
-        
-        nx.draw_networkx_labels(G, posicion, font_size=8, font_family='sans-serif', font_weight='bold')
-        plt.colorbar(nodos, label='Masa Acumulada')
-        plt.title(titulo, fontsize=15)
-        plt.axis('off')
-        
-        titulo_archivo = titulo.replace(' ', '_')
-        plt.savefig(os.path.join(ruta_imagenes, f"{titulo_archivo}.png"), dpi=300, bbox_inches='tight')
-
+        nodos = nx.draw_networkx_nodes(G, posicion, node_size=[100 + (m * 300) for m in masas], node_color=masas, cmap=plt.cm.YlOrRd, edgecolors='black')
+        nx.draw_networkx_edges(G, posicion, alpha=alfa_aristas, arrows=True, arrowsize=tamano_flecha, arrowstyle='-|>', edge_color='gray')
+        nx.draw_networkx_labels(G, posicion, font_size=8)
         if exportar_gephi:
-            G_export = G.copy()
-            for n in G_export.nodes():
-                G_export.nodes[n]['masa'] = float(G_export.nodes[n]['val'])
-            nx.write_gexf(G_export, os.path.join(ruta_gephi, f"{titulo_archivo}.gexf"))
+            ruta_gephi = os.path.join(ruta_base, "archivos_gephi"); os.makedirs(ruta_gephi, exist_ok=True)
+            nx.write_gexf(G, os.path.join(ruta_gephi, f"{titulo.replace(' ', '_')}.gexf"))
+        plt.title(titulo); plt.axis('off'); plt.savefig(os.path.join(ruta_imagenes, f"{titulo.replace(' ', '_')}.png")); plt.close()
 
-        if mostrar_grafico: plt.show()
-        else: plt.close()
+    @staticmethod
+    def exportar_mega_dashboard(diccionario_simulaciones, ruta_base, nombre_archivo="panel_control_total.html"):
+        fig_final = go.Figure()
+        mapeo_trazas = []
+        trace_counter = 0
+
+        all_masses = []
+        for list_figs in diccionario_simulaciones.values():
+            for f in list_figs:
+                if len(f.data) > 2:
+                    all_masses.extend(f.data[2].marker.color)
+        
+        min_m, max_m = (min(all_masses), max(all_masses)) if all_masses else (0, 1)
+
+        fig_final.add_trace(go.Scatter3d(
+            x=[None], y=[None], z=[None],
+            mode='markers',
+            marker=dict(
+                colorscale='YlOrRd',
+                cmin=min_m, cmax=max_m,
+                showscale=True,
+                colorbar=dict(title='Masa', thickness=20, x=1.0, len=0.7, y=0.5)
+            ),
+            showlegend=False
+        ))
+        trace_counter += 1
+
+        for sim_nombre, lista_figs in diccionario_simulaciones.items():
+            for i, fig in enumerate(lista_figs):
+                num_trazas_en_fig = len(fig.data)
+                indices_trazas = list(range(trace_counter, trace_counter + num_trazas_en_fig))
+                for trace in fig.data:
+                    trace.visible = False
+                    trace.showlegend = False
+                    if hasattr(trace, 'marker') and trace.marker and hasattr(trace.marker, 'showscale'):
+                        trace.marker.showscale = False
+                    fig_final.add_trace(trace)
+                mapeo_trazas.append({"sim": sim_nombre, "capa": i, "indices": indices_trazas})
+                trace_counter += num_trazas_en_fig
+
+        botones_sim = []
+        for sim_nombre in diccionario_simulaciones.keys():
+            visibilidad = [False] * len(fig_final.data)
+            visibilidad[0] = True
+            for m in mapeo_trazas:
+                if m["sim"] == sim_nombre and m["capa"] == 0:
+                    for idx in m["indices"]: visibilidad[idx] = True
+            botones_sim.append(dict(label=sim_nombre, method="update", args=[{"visible": visibilidad}, {"title": f"Red: {sim_nombre} | Capa 1"}]))
+
+        botones_capas = []
+        max_capas = max(len(v) for v in diccionario_simulaciones.values())
+        for c in range(max_capas):
+            visibilidad = [False] * len(fig_final.data)
+            visibilidad[0] = True
+            for m in mapeo_trazas:
+                if m["capa"] == c:
+                    for idx in m["indices"]: visibilidad[idx] = True
+            botones_capas.append(dict(label=f"Capa {c+1}", method="update", args=[{"visible": visibilidad}]))
+
+        fig_final.update_layout(
+            updatemenus=[
+                dict(buttons=botones_sim, direction="down", showactive=True, x=0.05, xanchor="left", y=1.08, yanchor="top", bgcolor="white"),
+                dict(buttons=botones_capas, direction="down", showactive=True, x=0.35, xanchor="left", y=1.08, yanchor="top", bgcolor="white")
+            ],
+            annotations=[
+                dict(text="<b>RED:</b>", showarrow=False, x=0.05, xref="paper", y=1.12, yref="paper", align="left"),
+                dict(text="<b>CAPA:</b>", showarrow=False, x=0.35, xref="paper", y=1.12, yref="paper", align="left")
+            ],
+            title=dict(text="Panel Maestro de Difusión", x=0.5, y=0.95),
+            scene=dict(xaxis=dict(visible=False), yaxis=dict(visible=False), zaxis=dict(visible=False), aspectmode='data'),
+            margin=dict(l=0, r=50, b=0, t=100),
+            showlegend=False
+        )
+
+        if len(mapeo_trazas) > 0:
+            for i in mapeo_trazas[0]["indices"]: fig_final.data[i].visible = True
+        
+        fig_final.write_html(os.path.join(ruta_base, nombre_archivo))
