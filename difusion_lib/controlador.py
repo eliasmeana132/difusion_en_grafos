@@ -48,11 +48,11 @@ class ControladorPelado:
             motor = MotorDifusion(self.G, tasa_difusion=tasa_difusion)
             motor.ejecutar(iteraciones=iteraciones_por_pelado)
             
-            titulo_p = f"Iteración Pelado {p+1} (Umbral {u_str})"
+            titulo_p = f"Capa {p+1}"
             fig_p = VisualizadorPelado.generar_figura_3d(self.G, titulo_p)
             if fig_p:
                 figuras_interactivas.append(fig_p)
-                titulos_interactivos.append(f"Capa {p+1}")
+                titulos_interactivos.append(titulo_p)
 
             if exportar_resultados:
                 VisualizadorPelado.renderizar(self.G, f"Post-Difusion_P{p+1}", self.ruta_raiz, mostrar_grafico=mostrar_graficos)
@@ -80,7 +80,7 @@ class ControladorPelado:
             )
             self.exportar_resumen(nombre_resumen)
             
-        return self.registro_maestro
+        return self.registro_maestro, figuras_interactivas
 
     def exportar_resumen(self, nombre_archivo):
         if not self.ruta_raiz or not self.registro_maestro: return
