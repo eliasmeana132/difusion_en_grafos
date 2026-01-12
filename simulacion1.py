@@ -102,7 +102,7 @@ def ejecutar_estudio_completo():
     G1 = generar_cascada_estricta()
     ctrl1 = ControladorPelado(G1)
     _, figs1 = ctrl1.ejecutar_estudio_pelado(
-        num_pelados=10, iteraciones_por_pelado=30, umbral_masa=1.1,
+        num_pelados=100, iteraciones_por_pelado=30, umbral_masa=1.1,
         exportar_resultados=True, carpeta_exportacion=os.path.join(carpeta_maestra, "sim1_cascada"),
         tasa_difusion=0.3
     )
@@ -112,7 +112,7 @@ def ejecutar_estudio_completo():
     G2 = generar_flujo_libre_escala(n_nodos=1000)
     ctrl2 = ControladorPelado(G2)
     _, figs2 = ctrl2.ejecutar_estudio_pelado(
-        num_pelados=10, iteraciones_por_pelado=20, umbral_masa=1.1,
+        num_pelados=100, iteraciones_por_pelado=20, umbral_masa=1.1,
         exportar_resultados=True, carpeta_exportacion=os.path.join(carpeta_maestra, "sim2_scalefree"),
         tasa_difusion=0.3
     )
@@ -122,7 +122,7 @@ def ejecutar_estudio_completo():
     G3 = generar_sbm_estocastico(n_total=300, n_grupos=10)
     ctrl3 = ControladorPelado(G3)
     _, figs3 = ctrl3.ejecutar_estudio_pelado(
-        num_pelados=20, iteraciones_por_pelado=15, umbral_masa=1.1,
+        num_pelados=100, iteraciones_por_pelado=15, umbral_masa=1.1,
         exportar_resultados=True, carpeta_exportacion=os.path.join(carpeta_maestra, "sim3_estocastico"),
         tasa_difusion=0.3
     )
@@ -132,7 +132,7 @@ def ejecutar_estudio_completo():
     G4, pesos_ini = generar_red_gaussiana(n_nodos=200)
     ctrl4 = ControladorPelado(G4)
     _, figs4 = ctrl4.ejecutar_estudio_pelado(
-        num_pelados=20, iteraciones_por_pelado=100, umbral_masa=1.1,
+        num_pelados=100, iteraciones_por_pelado=100, umbral_masa=1.1,
         valor_inicio=pesos_ini, exportar_resultados=True,
         carpeta_exportacion=os.path.join(carpeta_maestra, "sim4_gaussiana"),
         tasa_difusion=0.5
@@ -143,7 +143,7 @@ def ejecutar_estudio_completo():
     G5 = generar_malla_estocastica_netlogo(dim=30, link_chance=20)
     ctrl5 = ControladorPelado(G5)
     _, figs5 = ctrl5.ejecutar_estudio_pelado(
-        num_pelados=20, iteraciones_por_pelado=200, umbral_masa=1.1,
+        num_pelados=100, iteraciones_por_pelado=200, umbral_masa=1.1,
         exportar_resultados=True, carpeta_exportacion=os.path.join(carpeta_maestra, "sim5_malla_netlogo"),
         tasa_difusion=0.4
     )
