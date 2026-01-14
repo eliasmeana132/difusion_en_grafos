@@ -43,7 +43,6 @@ class ControladorPelado:
             
             masa_total_actual = sum(nx.get_node_attributes(self.G, 'val').values())
             umbral_escalado = ratio_umbral * masa_total_actual
-            u_str = f"{umbral_escalado:.4g}"
 
             motor = MotorDifusion(self.G, tasa_difusion=tasa_difusion)
             motor.ejecutar(iteraciones=iteraciones_por_pelado)

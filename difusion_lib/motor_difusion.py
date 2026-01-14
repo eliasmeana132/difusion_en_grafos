@@ -1,24 +1,33 @@
 import networkx as nx
+import numpy as np
+from scipy import sparse
 
 class MotorDifusion:
     def __init__(self, G, tasa_difusion=0.7):
         self.G = G
         self.tasa_difusion = tasa_difusion
+        self._nodes = list(G.nodes())
+        self._num_nodes = len(self._nodes)
+        self._M = self._preparar_matriz()
+
+    def _preparar_matriz(self):
+        if self._num_nodes == 0:
+            return None
+        A = nx.to_scipy_sparse_array(self.G, nodelist=self._nodes, format='csr').T
+        out_degrees = np.array(A.sum(axis=0)).flatten()
+        with np.errstate(divide='ignore'):
+            weights = self.tasa_difusion / out_degrees
+        weights[np.isinf(weights)] = 0  
+        M = A.dot(sparse.diags(weights))
+        diag_values = np.where(out_degrees > 0, 1 - self.tasa_difusion, 1.0)
+        M += sparse.diags(diag_values)
+        return M.tocsr()
 
     def ejecutar(self, iteraciones=100):
-        es_dirigido = self.G.is_directed()
+        if self._M is None:
+            return
+        v = np.array([self.G.nodes[n].get('val', 0.0) for n in self._nodes])
         for _ in range(iteraciones):
-            actualizaciones = {n: 0.0 for n in self.G.nodes()}
-            for n in self.G.nodes():
-                valor = self.G.nodes[n]['val']
-                vecinos = list(self.G.successors(n)) if es_dirigido else list(self.G.neighbors(n))
-                if vecinos:
-                    mantener = valor * (1 - self.tasa_difusion)
-                    actualizaciones[n] += mantener
-                    reparto = (valor - mantener) / len(vecinos)
-                    for v in vecinos:
-                        actualizaciones[v] += reparto
-                else:
-                    actualizaciones[n] += valor
-            for n, v in actualizaciones.items():
-                self.G.nodes[n]['val'] = v
+            v = self._M.dot(v)
+        for i, n in enumerate(self._nodes):
+            self.G.nodes[n]['val'] = v[i]

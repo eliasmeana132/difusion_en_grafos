@@ -26,8 +26,8 @@ class VisualizadorPelado:
                 a_x.append(x0 + 0.8 * vx); a_y.append(y0 + 0.8 * vy); a_z.append(z0 + 0.8 * vz)
                 a_u.append(vx / length); a_v.append(vy / length); a_w.append(vz / length)
 
-        trace_edges = go.Scatter3d(x=edge_x, y=edge_y, z=edge_z, line=dict(width=1, color='#888'), hoverinfo='none', mode='lines', name='Aristas')
-        trace_arrows = go.Cone(x=a_x, y=a_y, z=a_z, u=a_u, v=a_v, w=a_w, sizeref=0.05, anchor="tail", showscale=False, colorscale=[[0, '#666'], [1, '#666']], opacity=0.6, name='Dirección')
+        trace_edges = go.Scatter3d(x=edge_x, y=edge_y, z=edge_z, line=dict(width=1, color='#dbdbdb'), hoverinfo='none', mode='lines', name='Aristas')
+        trace_arrows = go.Cone(x=a_x, y=a_y, z=a_z, u=a_u, v=a_v, w=a_w, sizeref=0.05, anchor="tail", showscale=False, colorscale=[[0, '#dbdbdb'], [1, '#dbdbdb']], opacity=0.6, name='Dirección')
 
         masas = [G.nodes[n]['val'] for n in G.nodes()]
         trace_nodes = go.Scatter3d(
