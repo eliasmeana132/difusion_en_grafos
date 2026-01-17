@@ -31,7 +31,7 @@ class ControladorPelado:
         titulos_interactivos = []
         
         print(f"Iniciando Estudio: {self.conteo_nodos_original} nodos.")
-        
+        pelados={}
         for p in range(num_pelados):
             if len(self.G.nodes()) == 0: break
             
@@ -55,9 +55,7 @@ class ControladorPelado:
                 pd.DataFrame(datos_post).to_csv(os.path.join(ruta_datos, f"masa_P{p+1}.csv"), index=False)
             
             # todas_cfcs = AnalizadorPelado.obtener_metricas_cfc(self.G, p, self.conteo_nodos_original)
-            # print(todas_cfcs)
             todas_cfcs = AnalizadorPelado.nodos_para_quitar(self.G,p,self.conteo_nodos_original,umbral_masa=1.0)
-            # print(todas_cfcs)
             a_eliminar = [s for s in todas_cfcs if s['masa_total'] >= umbral_escalado]
             
             if not a_eliminar:
@@ -71,6 +69,7 @@ class ControladorPelado:
                 cfc['umbral_utilizado'] = umbral_escalado
                 self.registro_maestro.append(cfc)
                 self.G.remove_nodes_from(cfc['nodos'])
+            pelados.update({p+1: a_eliminar[0]['nodos']})
         
         if exportar_resultados and figuras_interactivas:
             VisualizadorPelado.exportar_dashboard_interactivo(
@@ -80,7 +79,7 @@ class ControladorPelado:
             )
             self.exportar_resumen(nombre_resumen)
             
-        return self.registro_maestro, figuras_interactivas,self.G
+        return self.registro_maestro, figuras_interactivas,self.G,pelados
     
     def ejecutar_estudio(self, iteraciones=150, nodos=[], tasa_difusion=0.7, valor_inicio=1.0, 
                                   mostrar_graficos=False, exportar_resultados=False, 
@@ -120,8 +119,7 @@ class ControladorPelado:
         if exportar_resultados:
             VisualizadorPelado.renderizar(self.G, f"Post-Difusion_Final", self.ruta_raiz, mostrar_grafico=mostrar_graficos)
             datos_post = [{"nodo": n, "masa": record[n]} for n in self.G.nodes()]
-            pd.DataFrame(datos_post).to_csv(os.path.join(ruta_datos, f"Masa_Final.csv"), index=False)
-        
+            pd.DataFrame(datos_post).to_csv(os.path.join(ruta_datos, f"Masa_Final.csv"), index=False)       
         if exportar_resultados:
             VisualizadorPelado.exportar_dashboard_interactivo(
                 figuras_interactivas, 

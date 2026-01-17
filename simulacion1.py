@@ -147,24 +147,26 @@ def ejecutar_estudio_completo():
     # mega_recolector["4. Gaussiana"] = figs4
 
     print("\n>>> Sim 5: Malla Estocástica (NetLogo)...")
-    # G5 = generar_malla_estocastica_netlogo(dim=12, link_chance=50)
-    G5=generar_cascada_estricta(n_bloques=10,nodos_por_bloque=20)
+    dim=4
+    G5 = generar_malla_estocastica_netlogo(dim=dim, link_chance=50)
+    # G5=generar_cascada_estricta(n_bloques=10,nodos_por_bloque=20)
     # G5 = nx.DiGraph()
     # G5.add_edges_from([
     #     (0, 1),(1,0),(2,1),(2,5),(3,0),(5,4),(6,3),(7,6),(7,4),(7,8),(8,7)
     #     ])
 
     ctrl5 = ControladorPelado(G5)
-    _, figs5 ,G= ctrl5.ejecutar_estudio_pelado(
+    _, figs5 ,G,pelados= ctrl5.ejecutar_estudio_pelado(
         num_pelados=30, iteraciones_por_pelado=200, umbral_masa=1.0,umbral_nodos_final=10,
         exportar_resultados=True, carpeta_exportacion=os.path.join(carpeta_maestra, "sim5_malla_netlogo"),
         tasa_difusion=0.4
     )
     mega_recolector["5. Malla NetLogo"] = figs5
-    print(G.nodes)
+    print(pelados)
     
     ctrl5 = ControladorPelado(G5)
-    _, figs6,record_final= ctrl5.ejecutar_estudio(iteraciones=10,nodos=G.nodes,tasa_difusion=0.4,valor_inicio=144,exportar_resultados=True,nombre_resumen='Final',carpeta_exportacion=os.path.join(carpeta_maestra, "sim5_malla_netlogo/DifusionFinal"))
+    _, figs6,record_final= ctrl5.ejecutar_estudio(iteraciones=1000,nodos=G.nodes,tasa_difusion=0.4,valor_inicio=dim^2,
+                                                  exportar_resultados=True,nombre_resumen='Final',carpeta_exportacion=os.path.join(carpeta_maestra, "sim5_malla_netlogo/DifusionFinal"))
     mega_recolector['5. Final Netlogo Difusin']=figs6
     
     

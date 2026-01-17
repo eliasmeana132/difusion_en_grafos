@@ -26,11 +26,9 @@ class AnalizadorPelado:
     def nodos_para_quitar(G,version_pelado,total_nodos_original,umbral_masa=1):
         nodos_a_quitar=[]
         resultados=[]
-        # print(G.nodes)
         for i in G.nodes:
             if G.nodes[i]['val']>=umbral_masa:
                 nodos_a_quitar.append(i)
-                # print(nodos_a_quitar)
             resultados.append({
                 'capa_pelado': version_pelado + 1,
                 'id_componente': f"P{version_pelado+1}_C{i}",
