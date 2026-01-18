@@ -90,7 +90,7 @@ def ejecutar_bateria_masiva(
             iteraciones=iteraciones_difusion,
             nodos=list(G_survivors.nodes()), 
             tasa_difusion=tasa_difusion,
-            valor_inicio=masa_total_concentrada,             
+            valor_inicio=masa_total_concentrada/len(list(G_survivors.nodes())),             
             exportar_resultados=True,
             carpeta_exportacion=folder_diff,
             nombre_resumen="resumen_difusion_final.csv"
@@ -142,18 +142,18 @@ def ejecutar_bateria_masiva(
     
 if __name__ == "__main__":
     marca_tiempo = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    dim=5
+    dim=30
     print("--- EJECUTANDO MALLA NETLOGO ---")
     ejecutar_bateria_masiva(
         tipo_de_grafo='malla_netlogo', 
-        n_simulaciones=10, 
+        n_simulaciones=2, 
         master_folder=f"simulaciones/Estudio_Masivo_{marca_tiempo}/Estudio_NETLOGO", 
-        tasa_difusion=0.2, 
-        num_pelados=10, 
+        tasa_difusion=0.4, 
+        num_pelados=200, 
         iteraciones_por_pelado=150, 
         iteraciones_difusion=150, 
         umbral_masa=1.0, 
-        umbral_nodos_final=max(1, int(0.1 * pow(dim,2))), 
+        umbral_nodos_final=max(1, int(0.01 * pow(dim,2))), 
         masa_total_concentrada=pow(dim,2),
         dim=dim,           
         link_chance=60    
@@ -167,7 +167,7 @@ if __name__ == "__main__":
         iteraciones_por_pelado=150, 
         iteraciones_difusion=150, 
         umbral_masa=1.0, 
-        umbral_nodos_final=max(1, int(0.1 * pow(dim,2))), 
+        umbral_nodos_final=max(1, int(0.01 * pow(dim,2))), 
         masa_total_concentrada=pow(dim,2),
         n_users=300,
         m_neighbors=2,
