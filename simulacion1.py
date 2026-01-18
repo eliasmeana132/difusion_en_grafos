@@ -89,6 +89,13 @@ def generar_malla_estocastica_netlogo(dim=3, link_chance=40):
                     G.add_edge(nodo_actual, t)
     return G
 
+def cantidad_nodos_mojados(record):
+    n=0
+    for i in record:
+        if i!=0:
+            n=n+1
+    return n
+    
 def ejecutar_estudio_completo():
     print("=== INICIANDO ESTUDIO DE SIMULACIONES CON MASTER DASHBOARD ===")
     
@@ -98,57 +105,79 @@ def ejecutar_estudio_completo():
     
     mega_recolector = {}
 
-    print("\n>>> Sim 1: Cascada Jerárquica...")
-    G1 = generar_cascada_estricta()
-    ctrl1 = ControladorPelado(G1)
-    _, figs1 = ctrl1.ejecutar_estudio_pelado(
-        num_pelados=100, iteraciones_por_pelado=30, umbral_masa=1.1,
-        exportar_resultados=True, carpeta_exportacion=os.path.join(carpeta_maestra, "sim1_cascada"),
-        tasa_difusion=0.3
-    )
-    mega_recolector["1. Cascada"] = figs1
+    # print("\n>>> Sim 1: Cascada Jerárquica...")
+    # G1 = generar_cascada_estricta()
+    # ctrl1 = ControladorPelado(G1)
+    # _, figs1 = ctrl1.ejecutar_estudio_pelado(
+    #     num_pelados=100, iteraciones_por_pelado=30, umbral_masa=1.1,
+    #     exportar_resultados=True, carpeta_exportacion=os.path.join(carpeta_maestra, "sim1_cascada"),
+    #     tasa_difusion=0.3
+    # )
+    # mega_recolector["1. Cascada"] = figs1
 
-    print("\n>>> Sim 2: Scale-Free...")
-    G2 = generar_flujo_libre_escala(n_nodos=1000)
-    ctrl2 = ControladorPelado(G2)
-    _, figs2 = ctrl2.ejecutar_estudio_pelado(
-        num_pelados=100, iteraciones_por_pelado=20, umbral_masa=1.1,
-        exportar_resultados=True, carpeta_exportacion=os.path.join(carpeta_maestra, "sim2_scalefree"),
-        tasa_difusion=0.3
-    )
-    mega_recolector["2. Scale-Free"] = figs2
+    # print("\n>>> Sim 2: Scale-Free...")
+    # G2 = generar_flujo_libre_escala(n_nodos=1000)
+    # ctrl2 = ControladorPelado(G2)
+    # _, figs2 = ctrl2.ejecutar_estudio_pelado(
+    #     num_pelados=100, iteraciones_por_pelado=20, umbral_masa=1.1,
+    #     exportar_resultados=True, carpeta_exportacion=os.path.join(carpeta_maestra, "sim2_scalefree"),
+    #     tasa_difusion=0.3
+    # )
+    # mega_recolector["2. Scale-Free"] = figs2
 
-    print("\n>>> Sim 3: Estocástico (SBM)...")
-    G3 = generar_sbm_estocastico(n_total=300, n_grupos=10)
-    ctrl3 = ControladorPelado(G3)
-    _, figs3 = ctrl3.ejecutar_estudio_pelado(
-        num_pelados=100, iteraciones_por_pelado=15, umbral_masa=1.1,
-        exportar_resultados=True, carpeta_exportacion=os.path.join(carpeta_maestra, "sim3_estocastico"),
-        tasa_difusion=0.3
-    )
-    mega_recolector["3. Estocástico"] = figs3
+    # print("\n>>> Sim 3: Estocástico (SBM)...")
+    # G3 = generar_sbm_estocastico(n_total=300, n_grupos=10)
+    # ctrl3 = ControladorPelado(G3)
+    # _, figs3 = ctrl3.ejecutar_estudio_pelado(
+    #     num_pelados=100, iteraciones_por_pelado=15, umbral_masa=1.1,
+    #     exportar_resultados=True, carpeta_exportacion=os.path.join(carpeta_maestra, "sim3_estocastico"),
+    #     tasa_difusion=0.3
+    # )
+    # mega_recolector["3. Estocástico"] = figs3
 
-    print("\n>>> Sim 4: Distribución Gaussiana...")
-    G4, pesos_ini = generar_red_gaussiana(n_nodos=200)
-    ctrl4 = ControladorPelado(G4)
-    _, figs4 = ctrl4.ejecutar_estudio_pelado(
-        num_pelados=100, iteraciones_por_pelado=100, umbral_masa=1.1,
-        valor_inicio=pesos_ini, exportar_resultados=True,
-        carpeta_exportacion=os.path.join(carpeta_maestra, "sim4_gaussiana"),
-        tasa_difusion=0.5
-    )
-    mega_recolector["4. Gaussiana"] = figs4
+    # print("\n>>> Sim 4: Distribución Gaussiana...")
+    # G4, pesos_ini = generar_red_gaussiana(n_nodos=200)
+    # ctrl4 = ControladorPelado(G4)
+    # _, figs4 = ctrl4.ejecutar_estudio_pelado(
+    #     num_pelados=100, iteraciones_por_pelado=100, umbral_masa=1.1,
+    #     valor_inicio=pesos_ini, exportar_resultados=True,
+    #     carpeta_exportacion=os.path.join(carpeta_maestra, "sim4_gaussiana"),
+    #     tasa_difusion=0.5
+    # )
+    # mega_recolector["4. Gaussiana"] = figs4
 
     print("\n>>> Sim 5: Malla Estocástica (NetLogo)...")
-    G5 = generar_malla_estocastica_netlogo(dim=30, link_chance=20)
+    dim=10
+    G5 = generar_malla_estocastica_netlogo(dim=int(dim), link_chance=50)
+
     ctrl5 = ControladorPelado(G5)
-    _, figs5 = ctrl5.ejecutar_estudio_pelado(
-        num_pelados=100, iteraciones_por_pelado=200, umbral_masa=1.1,
+    _, figs5 ,G,resumen_nodos= ctrl5.ejecutar_estudio_pelado(
+        num_pelados=30, iteraciones_por_pelado=200, umbral_masa=1.0,umbral_nodos_final=0.01*pow(dim,2),
         exportar_resultados=True, carpeta_exportacion=os.path.join(carpeta_maestra, "sim5_malla_netlogo"),
         tasa_difusion=0.4
     )
     mega_recolector["5. Malla NetLogo"] = figs5
-
+    print(resumen_nodos)
+    
+    ctrl5 = ControladorPelado(G5)
+    _, figs6,record_final= ctrl5.ejecutar_estudio(iteraciones=1000,nodos=G.nodes,tasa_difusion=0.4,valor_inicio=pow(dim,2),
+                                                  exportar_resultados=True,nombre_resumen='Final',carpeta_exportacion=os.path.join(carpeta_maestra, "sim5_malla_netlogo/DifusionFinal"))
+    mega_recolector['5. Final Netlogo Difusin']=figs6
+    
+    
+    
+    metricas=[]
+    # metricas.append(,cantidad_nodos_mojados(record_final))
+    # print(metricas)
+    # for i in range(len(G5.nodes)):
+    #     _, figs_nodo,record = ctrl5.ejecutar_estudio(iteraciones=10,
+    #                                              nodos=[i],tasa_difusion=0.4,valor_inicio=144,
+    #                                              exportar_resultados=True,nombre_resumen=f"Difusión para nodo : {i}",
+    #                                              carpeta_exportacion=os.path.join(carpeta_maestra, f"sim5_malla_netlogo/Difusion_Nodo_{i}"))
+    #     mega_recolector[f"Final Netlogo Nodo {i}"]=figs_nodo
+    #     metricas.append(cantidad_nodos_mojados(record))
+    print(metricas)
+    print(cantidad_nodos_mojados(record_final))
     print("\n" + "="*50)
     print("CONSOLIDANDO MASTER DASHBOARD (2 NIVELES)...")
     VisualizadorPelado.exportar_mega_dashboard(
@@ -156,7 +185,6 @@ def ejecutar_estudio_completo():
         carpeta_maestra, 
         "panel_control_total.html"
     )
-    
     print(f"BATERÍA COMPLETADA EXITOSAMENTE")
     print(f"Panel Interactivo: {os.path.join(carpeta_maestra, 'panel_control_total.html')}")
     print("="*50)
