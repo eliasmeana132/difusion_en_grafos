@@ -64,6 +64,7 @@ def ejecutar_bateria_masiva(
         folder_sim = os.path.join(master_folder, sim_id)
         
         _, figs_peel, G_survivors, pelados_dict = ctrl_peel.ejecutar_estudio_pelado(
+            mostrar_graficos=False,
             num_pelados=num_pelados,                  
             iteraciones_por_pelado=iteraciones_por_pelado,
             umbral_masa=umbral_masa,

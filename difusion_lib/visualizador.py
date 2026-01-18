@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import plotly.graph_objects as go
+import pickle
 
 
 class _Geometry3D:
@@ -176,14 +177,14 @@ class VisualizadorPelado:
         VisualizadorPelado.exportar_mega_dashboard({"Resultados": figuras_lista}, ruta_base, nombre_archivo)
 
     @staticmethod
-    def renderizar(G, titulo, ruta_base, exportar_gephi=True, mostrar_grafico=False, k_layout=None, alfa_aristas=0.3, tamano_flecha=15, node_base=100, node_scale=300):
-
+    def renderizar(G, titulo, ruta_base, exportar_gephi=True, mostrar_grafico=False, k_layout=None, alfa_aristas=0.3, tamano_flecha=15, node_base=100, node_scale=300, formatos=["svg"]):
         if len(G.nodes()) == 0: return
         
         ruta_imagenes = os.path.join(ruta_base, "imagenes_grafos")
         os.makedirs(ruta_imagenes, exist_ok=True)
         
-        plt.figure(figsize=(14, 10))
+        fig = plt.figure(figsize=(14, 10))
+        
         posicion = nx.spring_layout(G, k=k_layout if k_layout else 0.3, seed=42)
         masas = [G.nodes[n].get('val', 1.0) for n in G.nodes()]
         
@@ -196,8 +197,20 @@ class VisualizadorPelado:
         
         plt.title(titulo)
         plt.axis('off')
-        plt.savefig(os.path.join(ruta_imagenes, f"{titulo.replace(' ', '_')}.png"))
-        plt.close()
+        
+        base_filename = os.path.join(ruta_imagenes, f"{titulo.replace(' ', '_')}")
+        
+        for fmt in formatos:
+            if fmt == 'pkl':
+                with open(f"{base_filename}.pkl", "wb") as f:
+                    pickle.dump(fig, f)
+            else:
+                plt.savefig(f"{base_filename}.{fmt}", format=fmt, bbox_inches='tight')
+                
+        if mostrar_grafico:
+            plt.show()
+            
+        plt.close(fig)
 
         if exportar_gephi:
             ruta_gephi = os.path.join(ruta_base, "archivos_gephi")
