@@ -8,7 +8,8 @@ from .visualizador import VisualizadorPelado
 class ControladorPelado:
     def __init__(self, grafo):
         self.G = grafo.copy()
-        self.conteo_nodos_original = len(self.G.nodes())
+        self.nodos_originales = list(self.G.nodes()) 
+        self.conteo_nodos_original = len(self.nodos_originales)
         self.registro_maestro = [] 
         self.ruta_raiz = None 
 
@@ -18,7 +19,7 @@ class ControladorPelado:
         os.makedirs(os.path.join(ruta_destino, "reportes_datos"), exist_ok=True)
         return ruta_destino
 
-    def ejecutar_estudio_pelado(self, num_pelados=5, iteraciones_por_pelado=150, umbral_masa=1.1,umbral_nodos_final=1,
+    def ejecutar_estudio_pelado(self, num_pelados=5, iteraciones_por_pelado=150, umbral_masa=1.1, umbral_nodos_final=1,
                                   tasa_difusion=0.7, valor_inicio=1.0, 
                                   mostrar_graficos=False, exportar_resultados=False, 
                                   carpeta_exportacion="simulaciones/ejecucion",
@@ -31,7 +32,8 @@ class ControladorPelado:
         titulos_interactivos = []
         
         print(f"Iniciando Estudio: {self.conteo_nodos_original} nodos.")
-        pelados={}
+        pelados = {} 
+        
         for p in range(num_pelados):
             if len(self.G.nodes()) == 0: break
             
@@ -54,8 +56,7 @@ class ControladorPelado:
                 datos_post = [{"nodo": n, "masa": self.G.nodes[n]['val']} for n in self.G.nodes()]
                 pd.DataFrame(datos_post).to_csv(os.path.join(ruta_datos, f"masa_P{p+1}.csv"), index=False)
             
-            # todas_cfcs = AnalizadorPelado.obtener_metricas_cfc(self.G, p, self.conteo_nodos_original)
-            todas_cfcs = AnalizadorPelado.nodos_para_quitar(self.G,p,self.conteo_nodos_original,umbral_masa=1.0)
+            todas_cfcs = AnalizadorPelado.nodos_para_quitar(self.G, p, self.conteo_nodos_original, umbral_masa=1.0)
             a_eliminar = [s for s in todas_cfcs if s['masa_total'] >= umbral_escalado]
             
             if not a_eliminar:
@@ -63,13 +64,17 @@ class ControladorPelado:
                 break
                 
             print(f"Pelado {p+1}: Eliminando {len(a_eliminar)} componentes.")
-            if len(self.G.nodes)-len(a_eliminar)<umbral_nodos_final:
+            if len(self.G.nodes) - len(a_eliminar) < umbral_nodos_final:
                     break
+            
+            nodos_eliminados_esta_capa = []
             for cfc in a_eliminar:
                 cfc['umbral_utilizado'] = umbral_escalado
                 self.registro_maestro.append(cfc)
+                nodos_eliminados_esta_capa.extend(cfc['nodos'])
                 self.G.remove_nodes_from(cfc['nodos'])
-            pelados.update({p+1: a_eliminar[0]['nodos']})
+            
+            pelados[p+1] = nodos_eliminados_esta_capa
         
         if exportar_resultados and figuras_interactivas:
             VisualizadorPelado.exportar_dashboard_interactivo(
@@ -79,7 +84,7 @@ class ControladorPelado:
             )
             self.exportar_resumen(nombre_resumen)
             
-        return self.registro_maestro, figuras_interactivas,self.G,pelados
+        return self.registro_maestro, figuras_interactivas, self.G, pelados
     
     def ejecutar_estudio(self, iteraciones=150, nodos=[], tasa_difusion=0.7, valor_inicio=1.0, 
                                   mostrar_graficos=False, exportar_resultados=False, 
@@ -95,20 +100,24 @@ class ControladorPelado:
         print(f"Iniciando Difusión: {self.conteo_nodos_original} nodos.")
         
         if len(self.G.nodes()) == 0: 
-            return 'Por favor espicifica los nodos iniciales.'
+            return 'Por favor especifica los nodos iniciales.'
             
         for n in self.G.nodes:
             if n in nodos:
                 self.G.nodes[n]['val'] = valor_inicio.get(n, 1.0) if isinstance(valor_inicio, dict) else float(valor_inicio)
             else: 
                 self.G.nodes[n]['val'] = 0
+        
         motor = MotorDifusion(self.G, tasa_difusion=tasa_difusion)
-        record = [0]*len(self.G.nodes)
+        
+        max_node_id = max(self.nodos_originales) if self.nodos_originales else 0
+        record = [0] * (max_node_id + 1)
+
         for i in range(iteraciones):
             motor.ejecutar(iteraciones=1)
             for n in self.G.nodes:
-                if self.G.nodes[n]['val']>record[n]:
-                    record[n]=self.G.nodes[n]['val']
+                if self.G.nodes[n]['val'] > record[n]:
+                    record[n] = self.G.nodes[n]['val']
                     
         titulo_p = f"Difusion Final"
         fig_p = VisualizadorPelado.generar_figura_3d(self.G, titulo_p)
@@ -128,9 +137,34 @@ class ControladorPelado:
             )
             self.exportar_resumen(nombre_resumen)
             
-        return self.registro_maestro, figuras_interactivas,record
+        return self.registro_maestro, figuras_interactivas, record
 
     def exportar_resumen(self, nombre_archivo):
         if not self.ruta_raiz or not self.registro_maestro: return
         df = pd.DataFrame(self.registro_maestro)
         df.to_csv(os.path.join(self.ruta_raiz, nombre_archivo), index=False)
+
+    def exportar_consolidado_nodos(self, pelados_dict, record_masas, nombre_archivo="reporte_resumen_pelado_por_nodo.csv"):
+        if not self.ruta_raiz: return
+
+        nodo_a_capa = {}
+        for capa, lista_nodos in pelados_dict.items():
+            for nodo in lista_nodos:
+                nodo_a_capa[nodo] = capa
+        
+        consolidado = []
+        
+        for n in self.nodos_originales:
+            masa_val = record_masas[n] if n < len(record_masas) else 0
+            
+            capa_val = nodo_a_capa.get(n, -1) 
+
+            consolidado.append({
+                "Nodo": n,
+                "Grado de pelado": capa_val,
+                "record[n]": masa_val
+            })
+            
+        path_final = os.path.join(self.ruta_raiz, nombre_archivo)
+        pd.DataFrame(consolidado).to_csv(path_final, index=False)
+        print(f"Reporte consolidado generado en: {path_final}")
