@@ -23,7 +23,9 @@ class ControladorPelado:
                                   tasa_difusion=0.7, valor_inicio=1.0, 
                                   mostrar_graficos=False, exportar_resultados=False, 
                                   carpeta_exportacion="simulaciones/ejecucion",
-                                  nombre_resumen="reporte_resumen_pelado.csv"):  
+                                  nombre_resumen="reporte_resumen_pelado.csv",
+                                  generar_visualizaciones=False,
+                                  cfc=False):  
         
         if exportar_resultados: self._preparar_carpetas(carpeta_exportacion)
         ruta_datos = os.path.join(self.ruta_raiz, "reportes_datos") if self.ruta_raiz else ""
@@ -45,19 +47,23 @@ class ControladorPelado:
             motor = MotorDifusion(self.G, tasa_difusion=tasa_difusion)
             motor.ejecutar(iteraciones=iteraciones_por_pelado)
             
-            titulo_p = f"Capa {p+1}"
-            fig_p = VisualizadorPelado.generar_figura_3d(self.G, titulo_p)
-            if fig_p:
-                figuras_interactivas.append(fig_p)
-                titulos_interactivos.append(titulo_p)
+            if generar_visualizaciones:
+                titulo_p = f"Capa {p+1}"
+                fig_p = VisualizadorPelado.generar_figura_3d(self.G, titulo_p)
+                if fig_p:
+                    figuras_interactivas.append(fig_p)
+                    titulos_interactivos.append(titulo_p)
+
+                if exportar_resultados:
+                    VisualizadorPelado.renderizar(self.G, f"Post-Difusion_P{p+1}", self.ruta_raiz, mostrar_grafico=mostrar_graficos)
 
             if exportar_resultados:
-                VisualizadorPelado.renderizar(self.G, f"Post-Difusion_P{p+1}", self.ruta_raiz, mostrar_grafico=mostrar_graficos)
                 datos_post = [{"nodo": n, "masa": self.G.nodes[n]['val']} for n in self.G.nodes()]
                 pd.DataFrame(datos_post).to_csv(os.path.join(ruta_datos, f"masa_P{p+1}.csv"), index=False)
             
-            todas_cfcs = AnalizadorPelado.nodos_para_quitar(self.G, p, self.conteo_nodos_original, umbral_masa=1.0)
-            a_eliminar = [s for s in todas_cfcs if s['masa_total'] >= umbral_escalado]
+            para_quitar = AnalizadorPelado.nodos_para_quitar(self.G, p, self.conteo_nodos_original, umbral_masa=1.0)
+            
+            a_eliminar = [s for s in para_quitar if s['masa_total'] >= umbral_escalado]
             
             if not a_eliminar:
                 print(f"Pelado {p+1}: Fin (Umbral no alcanzado).")
@@ -65,7 +71,7 @@ class ControladorPelado:
                 
             print(f"Pelado {p+1}: Eliminando {len(a_eliminar)} componentes.")
             if len(self.G.nodes) - len(a_eliminar) < umbral_nodos_final:
-                    break
+                break
             
             nodos_eliminados_esta_capa = []
             for cfc in a_eliminar:
@@ -76,12 +82,13 @@ class ControladorPelado:
             
             pelados[p+1] = nodos_eliminados_esta_capa
         
-        if exportar_resultados and figuras_interactivas:
-            VisualizadorPelado.exportar_dashboard_interactivo(
-                figuras_interactivas, 
-                titulos_interactivos, 
-                self.ruta_raiz
-            )
+        if exportar_resultados:
+            if generar_visualizaciones and figuras_interactivas:
+                VisualizadorPelado.exportar_dashboard_interactivo(
+                    figuras_interactivas, 
+                    titulos_interactivos, 
+                    self.ruta_raiz
+                )
             self.exportar_resumen(nombre_resumen)
             
         return self.registro_maestro, figuras_interactivas, self.G, pelados
@@ -89,7 +96,8 @@ class ControladorPelado:
     def ejecutar_estudio(self, iteraciones=150, nodos=[], tasa_difusion=0.7, valor_inicio=1.0, 
                                   mostrar_graficos=False, exportar_resultados=False, 
                                   carpeta_exportacion="simulaciones/ejecucion",
-                                  nombre_resumen="reporte_resumen_pelado.csv"):  
+                                  nombre_resumen="reporte_resumen_pelado.csv",
+                                  generar_visualizaciones=False):  
         
         if exportar_resultados: self._preparar_carpetas(carpeta_exportacion)
         ruta_datos = os.path.join(self.ruta_raiz, "reportes_datos") if self.ruta_raiz else ""
@@ -119,22 +127,27 @@ class ControladorPelado:
                 if self.G.nodes[n]['val'] > record[n]:
                     record[n] = self.G.nodes[n]['val']
                     
-        titulo_p = f"Difusion Final"
-        fig_p = VisualizadorPelado.generar_figura_3d(self.G, titulo_p)
-        if fig_p:
-            figuras_interactivas.append(fig_p)
-            titulos_interactivos.append(titulo_p)
+        if generar_visualizaciones:
+            titulo_p = f"Difusion Final"
+            fig_p = VisualizadorPelado.generar_figura_3d(self.G, titulo_p)
+            if fig_p:
+                figuras_interactivas.append(fig_p)
+                titulos_interactivos.append(titulo_p)
+
+            if exportar_resultados:
+                VisualizadorPelado.renderizar(self.G, f"Post-Difusion_Final", self.ruta_raiz, mostrar_grafico=mostrar_graficos)
 
         if exportar_resultados:
-            VisualizadorPelado.renderizar(self.G, f"Post-Difusion_Final", self.ruta_raiz, mostrar_grafico=mostrar_graficos)
             datos_post = [{"nodo": n, "masa": record[n]} for n in self.G.nodes()]
             pd.DataFrame(datos_post).to_csv(os.path.join(ruta_datos, f"Masa_Final.csv"), index=False)       
+        
         if exportar_resultados:
-            VisualizadorPelado.exportar_dashboard_interactivo(
-                figuras_interactivas, 
-                titulos_interactivos, 
-                self.ruta_raiz
-            )
+            if generar_visualizaciones and figuras_interactivas:
+                VisualizadorPelado.exportar_dashboard_interactivo(
+                    figuras_interactivas, 
+                    titulos_interactivos, 
+                    self.ruta_raiz
+                )
             self.exportar_resumen(nombre_resumen)
             
         return self.registro_maestro, figuras_interactivas, record

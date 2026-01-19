@@ -3,6 +3,7 @@ import pandas as pd
 import networkx as nx
 from datetime import datetime
 from difusion_lib import ControladorPelado, VisualizadorPelado, GeneradorRedes
+import time
 
 def cantidad_nodos_mojados(record):
     """Cuenta cuántos nodos tienen un valor > 0 en el registro de difusión."""
@@ -11,7 +12,9 @@ def cantidad_nodos_mojados(record):
 def ejecutar_bateria_masiva(
     tipo_de_grafo='malla_netlogo', 
     n_simulaciones=5, 
+    generar_visualizaciones=False,
     master_folder="simulaciones", 
+    cfc=False,
     tasa_difusion=0.2, 
     num_pelados=10, 
     iteraciones_por_pelado=150, 
@@ -63,17 +66,21 @@ def ejecutar_bateria_masiva(
         ctrl_peel = ControladorPelado(G_original)
         folder_sim = os.path.join(master_folder, sim_id)
         
+        start_time=time.time()
         _, figs_peel, G_survivors, pelados_dict = ctrl_peel.ejecutar_estudio_pelado(
+            generar_visualizaciones=generar_visualizaciones,
             mostrar_graficos=False,
-            num_pelados=num_pelados,                  
+            num_pelados=num_pelados,
             iteraciones_por_pelado=iteraciones_por_pelado,
             umbral_masa=umbral_masa,
             umbral_nodos_final=umbral_nodos_final, 
             tasa_difusion=tasa_difusion,
             exportar_resultados=True,
-            carpeta_exportacion=folder_sim
-        )
-
+            carpeta_exportacion=folder_sim,
+            cfc=cfc)
+        end_time=time.time()
+        tiempo_eje= end_time-start_time
+        
         num_peels = len(pelados_dict)
         if num_peels > 0:
             last_layer_idx = max(pelados_dict.keys())
@@ -93,7 +100,8 @@ def ejecutar_bateria_masiva(
             valor_inicio=masa_total_concentrada/len(list(G_survivors.nodes())),             
             exportar_resultados=True,
             carpeta_exportacion=folder_diff,
-            nombre_resumen="resumen_difusion_final.csv"
+            nombre_resumen="resumen_difusion_final.csv",
+            generar_visualizaciones=generar_visualizaciones
         )
         
         n_mojados = cantidad_nodos_mojados(record_final)
@@ -102,7 +110,7 @@ def ejecutar_bateria_masiva(
 
         mega_recolector_figs[f"{sim_id} - Pelado"] = figs_peel
         mega_recolector_figs[f"{sim_id} - Difusion"] = figs_diff
-
+        
         resumen_metricas.append({
             "Simulacion_ID": sim_id,
             "Tipo_Grafo": tipo_de_grafo, 
@@ -111,7 +119,8 @@ def ejecutar_bateria_masiva(
             "Nodos_Ultima_Capa_Pelada": nodos_ultima_capa_eliminada,
             "Nodos_Sobrevivientes": nodos_sobrevivientes,
             "Nodos_Mojados": n_mojados,
-            "Ratio_Mojados": ratio_val
+            "Ratio_Mojados": ratio_val,
+            "Tiempo_Eje_Estudio_Pelado": tiempo_eje
         })
 
         print(f"   -> Pelados: {num_peels} | Mojados: {n_mojados} | Ratio: {ratio_val:.4f}")
@@ -119,58 +128,99 @@ def ejecutar_bateria_masiva(
     print("\nGenerando archivos maestros...")
 
     df_maestro = pd.DataFrame(resumen_metricas)
-    path_csv = os.path.join(master_folder, "Metricas_Consolidadas.csv")
+    path_csv = os.path.join(master_folder, f"Metricas_Consolidadas{'_cfc' if cfc else ''}.csv")
     df_maestro.to_csv(path_csv, index=False)
     
     cols_numericas = [
         "Total_Nodos_Inicial", "Total_Capas_Peladas", 
         "Nodos_Ultima_Capa_Pelada", "Nodos_Sobrevivientes", 
-        "Nodos_Mojados", "Ratio_Mojados"
+        "Nodos_Mojados", "Ratio_Mojados","Tiempo_Eje_Estudio_Pelado"
     ]
     for col in cols_numericas: df_maestro[col] = pd.to_numeric(df_maestro[col])
     
     df_promedios = df_maestro[cols_numericas].mean().to_frame(name="Promedio").T
-    path_avg = os.path.join(master_folder, "Promedios_Consolidados.csv")
+    path_avg = os.path.join(master_folder, f"Promedios_Consolidados{'_cfc' if cfc else ''}.csv")
     df_promedios.to_csv(path_avg, index=False)
-
-    VisualizadorPelado.exportar_mega_dashboard(
-        mega_recolector_figs,
-        master_folder,
-        "Dashboard_Global_3D.html"
-    )
+    if generar_visualizaciones:
+        VisualizadorPelado.exportar_mega_dashboard(
+            mega_recolector_figs,
+            master_folder,
+            "Dashboard_Global_3D.html"
+        )
     print("=== BATERÍA COMPLETADA ===")
     
 if __name__ == "__main__":
     marca_tiempo = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    dim=30
-    print("--- EJECUTANDO MALLA NETLOGO ---")
-    ejecutar_bateria_masiva(
-        tipo_de_grafo='malla_netlogo', 
-        n_simulaciones=2, 
-        master_folder=f"simulaciones/Estudio_Masivo_{marca_tiempo}/Estudio_NETLOGO", 
-        tasa_difusion=0.4, 
-        num_pelados=200, 
-        iteraciones_por_pelado=150, 
-        iteraciones_difusion=150, 
-        umbral_masa=1.0, 
-        umbral_nodos_final=max(1, int(0.01 * pow(dim,2))), 
-        masa_total_concentrada=pow(dim,2),
-        dim=dim,           
-        link_chance=60    
-    )
+    dim=10
+    n_sim=10
+    # print("--- EJECUTANDO MALLA NETLOGO ---")
+    # ejecutar_bateria_masiva(
+    #     tipo_de_grafo='malla_netlogo', 
+    #     n_simulaciones=n_sim, 
+    #     generar_visualizaciones=False,
+    #     master_folder=f"simulaciones/Estudio_Masivo_{marca_tiempo}/Estudio_NETLOGO", 
+    #     tasa_difusion=0.4, 
+    #     num_pelados=200, 
+    #     iteraciones_por_pelado=1, 
+    #     iteraciones_difusion=150, 
+    #     umbral_masa=1.0, 
+    #     umbral_nodos_final=max(1, int(0.01 * pow(dim,2))), 
+    #     masa_total_concentrada=pow(dim,2),
+    #     dim=dim,           
+    #     link_chance=40    
+    # )
+    
+    # ejecutar_bateria_masiva(
+    #     tipo_de_grafo='malla_netlogo', 
+    #     n_simulaciones=1, 
+    #     generar_visualizaciones=False,
+    #     master_folder=f"simulaciones/Estudio_Masivo_{marca_tiempo}/Estudio_NETLOGO", 
+    #     tasa_difusion=0.4, 
+    #     num_pelados=200, 
+    #     cfc=True,
+    #     iteraciones_por_pelado=10, 
+    #     iteraciones_difusion=150, 
+    #     umbral_masa=1.0, 
+    #     umbral_nodos_final=max(1, int(0.01 * pow(dim,2))), 
+    #     masa_total_concentrada=pow(dim,2),
+    #     dim=dim,           
+    #     link_chance=60    
+    # )
+    num_de_usuarios=30000
+    # n_sim=1
+    iteraciones_difusion=10
     ejecutar_bateria_masiva(
         tipo_de_grafo='red_social_realista', 
-        n_simulaciones=10, 
+        n_simulaciones=n_sim, 
         master_folder=f"simulaciones/Estudio_Masivo_{marca_tiempo}/red_social_realista", 
         tasa_difusion=0.2, 
         num_pelados=10, 
-        iteraciones_por_pelado=150, 
-        iteraciones_difusion=150, 
+        iteraciones_por_pelado=10, 
+        iteraciones_difusion=iteraciones_difusion, 
         umbral_masa=1.0, 
-        umbral_nodos_final=max(1, int(0.01 * pow(dim,2))), 
-        masa_total_concentrada=pow(dim,2),
-        n_users=300,
+        umbral_nodos_final=max(1, int(0.0001 * num_de_usuarios)), 
+        masa_total_concentrada=num_de_usuarios,
+        n_users=num_de_usuarios,
         m_neighbors=2,
         p_triangle=0.3, 
-        ratio_mutual=0.5
+        ratio_mutual=0.5,
+        generar_visualizaciones=False
     )
+    # ejecutar_bateria_masiva(
+    #     tipo_de_grafo='red_social_realista', 
+    #     n_simulaciones=n_sim, 
+    #     master_folder=f"simulaciones/Estudio_Masivo_{marca_tiempo}/red_social_realista", 
+    #     tasa_difusion=0.2, 
+    #     num_pelados=10, 
+    #     cfc=False,
+    #     iteraciones_por_pelado=1, 
+    #     iteraciones_difusion=iteraciones_difusion, 
+    #     umbral_masa=1.0, 
+    #     umbral_nodos_final=max(1, int(0.0001 * num_de_usuarios)), 
+    #     masa_total_concentrada=num_de_usuarios,
+    #     n_users=num_de_usuarios,
+    #     m_neighbors=2,
+    #     p_triangle=0.3, 
+    #     ratio_mutual=0.5,
+    #     generar_visualizaciones=False
+    # )
