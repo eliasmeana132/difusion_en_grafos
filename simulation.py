@@ -6,7 +6,6 @@ from difusion_lib import ControladorPelado, VisualizadorPelado, GeneradorRedes
 import time
 
 def cantidad_nodos_mojados(record):
-    """Cuenta cuántos nodos tienen un valor > 0 en el registro de difusión."""
     return sum(1 for i in record if i > 0)
 
 def ejecutar_bateria_masiva(

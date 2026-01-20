@@ -25,7 +25,7 @@ class ControladorPelado:
                                   carpeta_exportacion="simulaciones/ejecucion",
                                   nombre_resumen="reporte_resumen_pelado.csv",
                                   generar_visualizaciones=False,
-                                  cfc=False):  
+                                  usar_cfc=False):  
         
         if exportar_resultados: self._preparar_carpetas(carpeta_exportacion)
         ruta_datos = os.path.join(self.ruta_raiz, "reportes_datos") if self.ruta_raiz else ""
@@ -61,7 +61,10 @@ class ControladorPelado:
                 datos_post = [{"nodo": n, "masa": self.G.nodes[n]['val']} for n in self.G.nodes()]
                 pd.DataFrame(datos_post).to_csv(os.path.join(ruta_datos, f"masa_P{p+1}.csv"), index=False)
             
-            para_quitar = AnalizadorPelado.nodos_para_quitar(self.G, p, self.conteo_nodos_original, umbral_masa=1.0)
+            if usar_cfc:
+                para_quitar = AnalizadorPelado.obtener_metricas_cfc(self.G, p, self.conteo_nodos_original)
+            else:
+                para_quitar = AnalizadorPelado.nodos_para_quitar(self.G, p, self.conteo_nodos_original, umbral_masa=1.0)
             
             a_eliminar = [s for s in para_quitar if s['masa_total'] >= umbral_escalado]
             

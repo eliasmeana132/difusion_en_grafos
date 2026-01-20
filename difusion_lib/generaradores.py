@@ -36,8 +36,10 @@ class GeneradorRedes:
             else: G.add_edge(v, u)
         nodos = list(G.nodes())
         for _ in range(20):
-            u = nodos[random.randint(50, n_nodos-1)]
-            v = nodos[random.randint(0, 49)]
+            split_point = min(50, n_nodos // 2) 
+            if n_nodos > 1:
+                u = nodos[random.randint(split_point, n_nodos - 1)]
+                v = nodos[random.randint(0, split_point - 1)]
             G.add_edge(u, v)
         for n in G.nodes():
             G.nodes[n]['val'] = 1.0
