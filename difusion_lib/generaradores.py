@@ -104,7 +104,6 @@ class GeneradorRedes:
     @staticmethod
     def generar_red_social_realista(n_users=300, m_neighbors=2, p_triangle=0.3, ratio_mutual=0.05):
         G_base = nx.powerlaw_cluster_graph(n_users, m_neighbors, p_triangle, seed=42)
-        
         G = nx.DiGraph()
         
         for u, v in G_base.edges():

@@ -4,7 +4,7 @@ import networkx as nx
 from datetime import datetime
 from difusion_lib import *
 import time
-from simulacion_def_peq import configuraciones_estudio_peq, configuraciones_estudio_med,configuraciones_estudio_masivo,configuraciones_estudio_denso,configuraciones_estudio_grande
+from simulacion_def_peq import *
 
 def cantidad_nodos_mojados(record):
     return len(set(record))
@@ -60,7 +60,6 @@ def ejecutar_bateria_masiva(
             func_generadora = mapeo_generadores[tipo]
             resultado_generador = func_generadora(**params_especificos)
             G_original = resultado_generador[0] if isinstance(resultado_generador, tuple) else resultado_generador
-            G_CELF = G_original.copy()
             n_total_nodos = len(G_original)
             
             n_mojados_PEL = 0
@@ -121,7 +120,7 @@ def ejecutar_bateria_masiva(
             # ESTUDIO CELF
             ############################################
             if 'celf' in metodos and len(G_survivors) > 0:
-                G_ig = ConvertidorGrafos.a_igraph(G_CELF)
+                G_ig = ConvertidorGrafos.a_igraph(G_original)
                 k=len(G_survivors)
                 p = 0.1
                 mc = 100
@@ -134,7 +133,7 @@ def ejecutar_bateria_masiva(
                                                                               p=p,
                                                                               mc=mc)
                 print(f"CELF encontro {seeds_celf} en {sum(times)} segundos")
-                time_celf=time.time()-start_celf
+                tiempo_eje_CELF=time.time()-start_celf
                 # --- Difusión de Resultados de CELF ---
 
                 ctrl_CELF = ControladorPelado(G_original)
@@ -160,7 +159,7 @@ def ejecutar_bateria_masiva(
                 G_df_edges = nx.to_pandas_edgelist(G_original)
                 
                 k_ris = len(G_survivors)
-                p_ris = tasa_difusion  
+                p_ris = 0.1
                 mc_ris = 500           
                 
                 print(f"Iniciando RIS para encontrar {k_ris} semillas...")
@@ -207,7 +206,7 @@ def ejecutar_bateria_masiva(
                 "Semillas_CELF": str(seeds_celf),
                 "Nodos_Mojados_CELF": n_mojados_CELF,
                 "Ratio_Mojados_CELF": ratio_val_CELF,
-                "Tiempo_Eje_CELF": time_celf,
+                "tiempo_eje_CELF": tiempo_eje_CELF,
                 "Semillas_RIS": str(seeds_ris),
                 "Nodos_Mojados_RIS": n_mojados_RIS,
                 "Ratio_Mojados_RIS": ratio_val_RIS,
@@ -226,7 +225,7 @@ def ejecutar_bateria_masiva(
     columnas_interes = [
         "Tipo_Grafo", "Total_Nodos_Inicial", "Total_Capas_Peladas", 
         "Cantidad_Semillas_PEL", "Nodos_Mojados_PEL", "Ratio_Mojados_PEL", "Tiempo_Eje_PEL",
-        "Nodos_Mojados_CELF", "Ratio_Mojados_CELF", "Tiempo_Eje_CELF",
+        "Nodos_Mojados_CELF", "Ratio_Mojados_CELF", "tiempo_eje_CELF",
         "Nodos_Mojados_RIS", "Ratio_Mojados_RIS", "Tiempo_Eje_RIS"
     ]
     df_promedios = df_maestro[columnas_interes].groupby("Tipo_Grafo").mean().reset_index()
@@ -243,52 +242,117 @@ if __name__ == "__main__":
     
     
     ejecutar_bateria_masiva(
-        metodos=['pel', 'celf', 'ris'],
-        configuraciones_grafos=configuraciones_estudio_peq,
-        n_simulaciones=200,
-        master_folder=f"{path_estudio}/Estudio_Peq",
-        iteraciones_por_pelado=10,
-        tasa_difusion=0.4,
-        iteraciones_difusion=150,
-        umbral_nodos_final=2
-    )
-    ejecutar_bateria_masiva(
-        metodos=['pel', 'celf', 'ris'],
-        configuraciones_grafos=configuraciones_estudio_med,
-        n_simulaciones=200,
-        master_folder=f"{path_estudio}/Estudio_Med",
-        iteraciones_por_pelado=10,
-        tasa_difusion=0.4,
-        iteraciones_difusion=150,
-        umbral_nodos_final=2
-    )
-    ejecutar_bateria_masiva(
         metodos=['pel', 'ris'],
-        configuraciones_grafos=configuraciones_estudio_grande,
-        n_simulaciones=200,
-        master_folder=f"{path_estudio}/Estudio_Grande",
+        configuraciones_grafos=configuraciones_estudio_red_usuarios_crec,
+        n_simulaciones=1,
+        master_folder=f"{path_estudio}/Estudio_RIS_PEL_RED_SOCIAL_NODOS_CREC",
         iteraciones_por_pelado=10,
         tasa_difusion=0.4,
         iteraciones_difusion=150,
         umbral_nodos_final=2
     )
-    ejecutar_bateria_masiva(
-        metodos=['pel', 'ris'],
-        configuraciones_grafos=configuraciones_estudio_masivo,
-        n_simulaciones=200,
-        master_folder=f"{path_estudio}/Estudio_Masivo",
-        iteraciones_por_pelado=10,
-        tasa_difusion=0.4,
-        iteraciones_difusion=150,
-        umbral_nodos_final=2
-    )
-    ejecutar_bateria_masiva(
-        metodos=['pel', 'ris'],
-        configuraciones_grafos=configuraciones_estudio_denso,
-        n_simulaciones=200,
-        master_folder=f"{path_estudio}/Estudio_Denso",
-        iteraciones_por_pelado=10,
-        tasa_difusion=0.4,
-        iteraciones_difusion=150,
-        umbral_nodos_final=2
-    )
+    # ejecutar_bateria_masiva(
+    #     metodos=['pel', 'ris'],
+    #     configuraciones_grafos=configuraciones_estudio_RIS_umbral_min_250k,
+    #     n_simulaciones=1,
+    #     master_folder=f"{path_estudio}/Estudio_RIS_umbral_min_250k",
+    #     iteraciones_por_pelado=1,
+    #     tasa_difusion=0.4,
+    #     iteraciones_difusion=150,
+    #     umbral_nodos_final=2
+    # )
+    
+    # ejecutar_bateria_masiva(
+    #     metodos=['pel', 'ris'],
+    #     configuraciones_grafos=configuraciones_estudio_RIS_umbral_min_1000k,
+    #     n_simulaciones=1,
+    #     master_folder=f"{path_estudio}/Estudio_RIS_umbral_min_1000k",
+    #     iteraciones_por_pelado=10,
+    #     tasa_difusion=0.4,
+    #     iteraciones_difusion=150,
+    #     umbral_nodos_final=2
+    # )
+    
+    # ejecutar_bateria_masiva(
+    #     metodos=['pel', 'ris'],
+    #     configuraciones_grafos=configuraciones_estudio_suc_netlogo,
+    #     n_simulaciones=2,
+    #     master_folder=f"{path_estudio}/Estudio_suc_netlogo",
+    #     iteraciones_por_pelado=10,
+    #     tasa_difusion=0.4,
+    #     iteraciones_difusion=150,
+    #     umbral_nodos_final=2
+    # )
+    
+    # ejecutar_bateria_masiva(
+    #     metodos=['pel', 'ris'],
+    #     configuraciones_grafos=configuraciones_estudio_red_usuarios_crec,
+    #     n_simulaciones=2,
+    #     master_folder=f"{path_estudio}/Estudio_usuarios_crec",
+    #     iteraciones_por_pelado=10,
+    #     tasa_difusion=0.4,
+    #     iteraciones_difusion=150,
+    #     umbral_nodos_final=2
+    # )
+    
+    # ejecutar_bateria_masiva(
+    #     metodos=['pel', 'ris'],
+    #     configuraciones_grafos=configuraciones_estudio_red_con_crec,
+    #     n_simulaciones=2,
+    #     master_folder=f"{path_estudio}/Estudio_con_crec",
+    #     iteraciones_por_pelado=10,
+    #     tasa_difusion=0.4,
+    #     iteraciones_difusion=150,
+    #     umbral_nodos_final=2
+    # )
+    
+    # ejecutar_bateria_masiva(
+    #     metodos=['pel', 'celf', 'ris'],
+    #     configuraciones_grafos=configuraciones_estudio_peq,
+    #     n_simulaciones=200,
+    #     master_folder=f"{path_estudio}/Estudio_Peq",
+    #     iteraciones_por_pelado=10,
+    #     tasa_difusion=0.4,
+    #     iteraciones_difusion=150,
+    #     umbral_nodos_final=2
+    # )
+    # ejecutar_bateria_masiva(
+    #     metodos=['pel','celf', 'ris'],
+    #     configuraciones_grafos=configuraciones_estudio_med,
+    #     n_simulaciones=200,
+    #     master_folder=f"{path_estudio}/Estudio_Med",
+    #     iteraciones_por_pelado=10,
+    #     tasa_difusion=0.4,
+    #     iteraciones_difusion=150,
+    #     umbral_nodos_final=2
+    # )
+    # ejecutar_bateria_masiva(
+    #     metodos=['pel', 'ris'],
+    #     configuraciones_grafos=configuraciones_estudio_grande,
+    #     n_simulaciones=200,
+    #     master_folder=f"{path_estudio}/Estudio_Grande",
+    #     iteraciones_por_pelado=10,
+    #     tasa_difusion=0.4,
+    #     iteraciones_difusion=150,
+    #     umbral_nodos_final=2
+    # )
+    # ejecutar_bateria_masiva(
+    #     metodos=['pel', 'ris'],
+    #     configuraciones_grafos=configuraciones_estudio_masivo,
+    #     n_simulaciones=200,
+    #     master_folder=f"{path_estudio}/Estudio_Masivo",
+    #     iteraciones_por_pelado=10,
+    #     tasa_difusion=0.4,
+    #     iteraciones_difusion=150,
+    #     umbral_nodos_final=2
+    # )
+    # ejecutar_bateria_masiva(
+    #     metodos=['pel', 'ris'],
+    #     configuraciones_grafos=configuraciones_estudio_denso,
+    #     n_simulaciones=200,
+    #     master_folder=f"{path_estudio}/Estudio_Denso",
+    #     iteraciones_por_pelado=10,
+    #     tasa_difusion=0.4,
+    #     iteraciones_difusion=150,
+    #     umbral_nodos_final=2
+    # )
