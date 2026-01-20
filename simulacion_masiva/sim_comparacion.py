@@ -77,6 +77,9 @@ def ejecutar_bateria_masiva(
             tiempo_eje_RIS = 0.0
             seeds_ris = []
             
+            ############################################
+            # ESTUDIO PELADO
+            ############################################
             ctrl_peel = ControladorPelado(G_original)
             folder_sim = os.path.join(folder_tipo, sim_id)
             
@@ -110,42 +113,49 @@ def ejecutar_bateria_masiva(
                 
                 n_mojados_PEL = cantidad_nodos_mojados(record_final_PEL)
                 ratio_val_PEL = n_mojados_PEL / n_total_nodos if n_total_nodos > 0 else 0.0
+            ############################################
+            # FIN ESTUDIO PELADO
+            ############################################
             
+            ############################################
+            # ESTUDIO CELF
+            ############################################
             if 'celf' in metodos and len(G_survivors) > 0:
                 G_ig = ConvertidorGrafos.a_igraph(G_CELF)
-                k = len(G_survivors)
+                k=len(G_survivors)
                 p = 0.1
                 mc = 100
-                
+
                 print(f"Iniciando CELF para encontrar {k} semillas en una red de {G_ig.vcount()} nodos...")
-                start_celf = time.time()
-                seeds_idx, _, _, _ = AnalizadorCELF.ejecutar_celf(
-                        g=G_ig, 
-                        k=k, 
-                        p=p, 
-                        mc=mc
-                )
-                tiempo_eje_CELF = time.time() - start_celf
                 
-                seeds_celf = [G_ig.vs[idx]['name'] for idx in seeds_idx]
-                print(f"CELF encontro {seeds_celf} en {tiempo_eje_CELF} segundos")
-                
+                start_celf=time.time()
+                seeds_celf, spreads, times, lookups = AnalizadorCELF.ejecutar_celf(g=G_ig,
+                                                                              k=k,
+                                                                              p=p,
+                                                                              mc=mc)
+                print(f"CELF encontro {seeds_celf} en {sum(times)} segundos")
+                time_celf=time.time()-start_celf
+                # --- Difusión de Resultados de CELF ---
+
                 ctrl_CELF = ControladorPelado(G_original)
+
                 folder_CELF = os.path.join(folder_sim, "Difusion_CELF")
-                
-                _, figs_CELF, record_final_CELF = ctrl_CELF.ejecutar_estudio(
-                    iteraciones=iteraciones_difusion,
-                    nodos=seeds_celf, 
-                    tasa_difusion=tasa_difusion,
-                    valor_inicio=masa_total_concentrada/len(G_survivors) if len(G_survivors)>0 else 0,             
-                    exportar_resultados=True,
-                    carpeta_exportacion=folder_CELF,
-                    generar_visualizaciones=generar_visualizaciones
-                )
-                
+                _, figs_CELF, record_final_CELF = ctrl_CELF.ejecutar_estudio(iteraciones=iteraciones_difusion,
+                                                                             nodos=list(seeds_celf),
+                                                                             tasa_difusion=tasa_difusion,
+                                                                             valor_inicio=masa_total_concentrada/len(G_survivors) if len(G_survivors)>0 else 0,
+                                                                             exportar_resultados=True,
+                                                                             carpeta_exportacion=folder_CELF,
+                                                                             generar_visualizaciones=generar_visualizaciones)
                 n_mojados_CELF = cantidad_nodos_mojados(record_final_CELF)
                 ratio_val_CELF = n_mojados_CELF / n_total_nodos if n_total_nodos > 0 else 0.0
+            ############################################
+            # FIN ESTUDIO CELF
+            ############################################
             
+            ############################################
+            # ESTUDIO RIS
+            ############################################
             if 'ris' in metodos and len(G_survivors) > 0:
                 G_df_edges = nx.to_pandas_edgelist(G_original)
                 
@@ -181,6 +191,9 @@ def ejecutar_bateria_masiva(
                 n_mojados_RIS = cantidad_nodos_mojados(record_final_RIS)
                 ratio_val_RIS = n_mojados_RIS / n_total_nodos if n_total_nodos > 0 else 0.0
 
+            ############################################
+            # FIN ESTUDIO RIS
+            ############################################
             resumen_metricas.append({
                 "Simulacion_ID": sim_id,
                 "Tipo_Grafo": tipo, 
@@ -194,11 +207,11 @@ def ejecutar_bateria_masiva(
                 "Semillas_CELF": str(seeds_celf),
                 "Nodos_Mojados_CELF": n_mojados_CELF,
                 "Ratio_Mojados_CELF": ratio_val_CELF,
-                "Tiempo_Eje_CELF": tiempo_eje_CELF,
+                "Tiempo_Eje_CELF": time_celf,
                 "Semillas_RIS": str(seeds_ris),
                 "Nodos_Mojados_RIS": n_mojados_RIS,
                 "Ratio_Mojados_RIS": ratio_val_RIS,
-                "Tiempo_Eje_RIS": tiempo_eje_RIS
+                "Tiempo_Eje_RIS": tiempo_eje_RIS,
             })
 
         df_tipo = pd.DataFrame(resumen_metricas)
