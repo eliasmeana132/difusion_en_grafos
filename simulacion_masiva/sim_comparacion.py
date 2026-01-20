@@ -336,16 +336,16 @@ if __name__ == "__main__":
     #     iteraciones_difusion=150,
     #     umbral_nodos_final=2
     # )
-    # ejecutar_bateria_masiva(
-    #     metodos=['pel', 'ris'],
-    #     configuraciones_grafos=configuraciones_estudio_masivo,
-    #     n_simulaciones=200,
-    #     master_folder=f"{path_estudio}/Estudio_Masivo",
-    #     iteraciones_por_pelado=10,
-    #     tasa_difusion=0.4,
-    #     iteraciones_difusion=150,
-    #     umbral_nodos_final=2
-    # )
+    ejecutar_bateria_masiva(
+        metodos=['pel', 'ris'],
+        configuraciones_grafos=configuraciones_estudio_masivo,
+        n_simulaciones=200,
+        master_folder=f"{path_estudio}/Estudio_Masivo",
+        iteraciones_por_pelado=10,
+        tasa_difusion=0.4,
+        iteraciones_difusion=150,
+        umbral_nodos_final=2
+    )
     # ejecutar_bateria_masiva(
     #     metodos=['pel', 'ris'],
     #     configuraciones_grafos=configuraciones_estudio_denso,

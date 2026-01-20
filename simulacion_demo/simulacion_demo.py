@@ -14,6 +14,7 @@ def ejecutar_bateria_masiva(
     configuraciones_grafos=[{'tipo': 'malla_netlogo','params': {'dim': 10, 'link_chance': 40}}], 
     n_simulaciones=5, 
     generar_visualizaciones=False,
+    generar_visualizaciones_pelado=False,
     master_folder="simulaciones", 
     usar_cfc=False,
     tasa_difusion=0.2, 
@@ -52,6 +53,8 @@ def ejecutar_bateria_masiva(
         print(f"INICIANDO BATERÍA: {tipo.upper()} ({n_simulaciones} sims)")
         print(f"Parámetros: {params_especificos}")
         print("="*50)
+        mega_recolector_figs = {} 
+        
         for i in range(n_simulaciones):
             sim_id = f"Simulacion_{i+1:03d}" 
             print(f">>> {tipo} - {sim_id}")
@@ -60,6 +63,11 @@ def ejecutar_bateria_masiva(
             resultado_generador = func_generadora(**params_especificos)
             G_original = resultado_generador[0] if isinstance(resultado_generador, tuple) else resultado_generador
             n_total_nodos = len(G_original)
+            
+            figs_peel = []
+            figs_PEL = []
+            figs_CELF = []
+            figs_RIS = []
             
             n_mojados_PEL = 0
             ratio_val_PEL = 0.0
@@ -83,7 +91,7 @@ def ejecutar_bateria_masiva(
             
             start_time = time.time()
             _, figs_peel, G_survivors, pelados_dict = ctrl_peel.ejecutar_estudio_pelado(
-                generar_visualizaciones=generar_visualizaciones,
+                generar_visualizaciones=generar_visualizaciones_pelado,
                 num_pelados=num_pelados,
                 iteraciones_por_pelado=iteraciones_por_pelado,
                 umbral_masa=umbral_masa,
@@ -94,6 +102,9 @@ def ejecutar_bateria_masiva(
                 usar_cfc=usar_cfc
             )
             tiempo_eje_PEL = time.time() - start_time
+            
+            for idx, fig in enumerate(figs_peel):
+                fig.layout.title.text = f"Peel Step {idx+1}"
             
             if 'pel' in metodos:
                 ctrl_PEL = ControladorPelado(G_original)
@@ -109,10 +120,13 @@ def ejecutar_bateria_masiva(
                     generar_visualizaciones=generar_visualizaciones
                 )
                 
+                for fig in figs_PEL:
+                    fig.layout.title.text = "Difusión: Método PEL (Peel)"
+                
                 n_mojados_PEL = cantidad_nodos_mojados(record_final_PEL)
                 ratio_val_PEL = n_mojados_PEL / n_total_nodos if n_total_nodos > 0 else 0.0
             ############################################
-            # FIN ESTUDIO PELADO
+            # FIN ESTUDIO PEL
             ############################################
             
             ############################################
@@ -124,29 +138,30 @@ def ejecutar_bateria_masiva(
                 p = 0.1
                 mc = 100
 
-                print(f"Iniciando CELF para encontrar {k} semillas en una red de {G_ig.vcount()} nodos...")
-                
+                print(f"Iniciando CELF...")
                 start_celf=time.time()
-                seeds_celf, spreads, times, lookups = AnalizadorCELF.ejecutar_celf(g=G_ig,
-                                                                              k=k,
-                                                                              p=p,
-                                                                              mc=mc)
-                print(f"CELF encontro {seeds_celf} en {sum(times)} segundos")
+                seeds_celf, spreads, times, lookups = AnalizadorCELF.ejecutar_celf(g=G_ig, k=k, p=p, mc=mc)
                 tiempo_eje_CELF=time.time()-start_celf
-                # --- Difusión de Resultados de CELF ---
 
                 ctrl_CELF = ControladorPelado(G_original)
-
                 folder_CELF = os.path.join(folder_sim, "Difusion_CELF")
-                _, figs_CELF, record_final_CELF = ctrl_CELF.ejecutar_estudio(iteraciones=iteraciones_difusion,
-                                                                             nodos=list(seeds_celf),
-                                                                             tasa_difusion=tasa_difusion,
-                                                                             valor_inicio=masa_total_concentrada/len(G_survivors) if len(G_survivors)>0 else 0,
-                                                                             exportar_resultados=True,
-                                                                             carpeta_exportacion=folder_CELF,
-                                                                             generar_visualizaciones=generar_visualizaciones)
+                
+                _, figs_CELF, record_final_CELF = ctrl_CELF.ejecutar_estudio(
+                    iteraciones=iteraciones_difusion,
+                    nodos=list(seeds_celf),
+                    tasa_difusion=tasa_difusion,
+                    valor_inicio=masa_total_concentrada/len(G_survivors) if len(G_survivors)>0 else 0,
+                    exportar_resultados=True,
+                    carpeta_exportacion=folder_CELF,
+                    generar_visualizaciones=generar_visualizaciones
+                )
+                
+                for fig in figs_CELF:
+                    fig.layout.title.text = "Difusión: Método CELF"
+                
                 n_mojados_CELF = cantidad_nodos_mojados(record_final_CELF)
                 ratio_val_CELF = n_mojados_CELF / n_total_nodos if n_total_nodos > 0 else 0.0
+                
             ############################################
             # FIN ESTUDIO CELF
             ############################################
@@ -156,22 +171,14 @@ def ejecutar_bateria_masiva(
             ############################################
             if 'ris' in metodos and len(G_survivors) > 0:
                 G_df_edges = nx.to_pandas_edgelist(G_original)
-                
                 k_ris = len(G_survivors)
                 p_ris = 0.1
                 mc_ris = 500           
                 
-                print(f"Iniciando RIS para encontrar {k_ris} semillas...")
-                
+                print(f"Iniciando RIS...")
                 start_ris = time.time()
-                seeds_ris, times_ris = AnalizadorRIS.ris(
-                    G=G_df_edges, 
-                    k=k_ris, 
-                    p=p_ris, 
-                    mc=mc_ris
-                )
+                seeds_ris, times_ris = AnalizadorRIS.ris(G=G_df_edges, k=k_ris, p=p_ris, mc=mc_ris)
                 tiempo_eje_RIS = time.time() - start_ris
-                print(f"RIS encontró {len(seeds_ris)} semillas en {tiempo_eje_RIS:.2f} segundos")
 
                 ctrl_RIS = ControladorPelado(G_original)
                 folder_RIS = os.path.join(folder_sim, "Difusion_RIS")
@@ -186,12 +193,31 @@ def ejecutar_bateria_masiva(
                     generar_visualizaciones=generar_visualizaciones
                 )
                 
+                for fig in figs_RIS:
+                    fig.layout.title.text = "Difusión: Método RIS"
+                
                 n_mojados_RIS = cantidad_nodos_mojados(record_final_RIS)
                 ratio_val_RIS = n_mojados_RIS / n_total_nodos if n_total_nodos > 0 else 0.0
-
+            
             ############################################
             # FIN ESTUDIO RIS
             ############################################
+            
+            ############################################
+            # MEGA DASHBOARD 
+            ############################################
+            if generar_visualizaciones:
+                mega_recolector_figs[f"{sim_id} - Estudio Pelado"] = figs_peel
+                
+                if 'pel' in metodos:
+                    mega_recolector_figs[f"{sim_id} - Difusion - PEL"] = figs_PEL
+                
+                if 'celf' in metodos:
+                    mega_recolector_figs[f"{sim_id} - Difusion - CELF"] = figs_CELF
+                
+                if 'ris' in metodos:
+                    mega_recolector_figs[f"{sim_id} - Difusion - RIS"] = figs_RIS
+
             resumen_metricas.append({
                 "Simulacion_ID": sim_id,
                 "Tipo_Grafo": tipo, 
@@ -212,13 +238,19 @@ def ejecutar_bateria_masiva(
                 "Tiempo_Eje_RIS": tiempo_eje_RIS,
             })
 
+        if generar_visualizaciones:
+            VisualizadorPelado.exportar_mega_dashboard(
+                mega_recolector_figs,
+                folder_tipo,
+                f"Dashboard_Global_{tipo}.html"
+            )
+
         df_tipo = pd.DataFrame(resumen_metricas)
         df_tipo.to_csv(os.path.join(folder_tipo, f"Metricas_{tipo}_{time.time()}.csv"), index=False)
         resumen_global.append(df_tipo)
 
     print("\nGenerando reportes consolidados...")
     df_maestro = pd.concat(resumen_global, ignore_index=True)
-    
     df_maestro.to_csv(os.path.join(master_folder, f"Metricas_Globales_Detalladas_{time.time()}.csv"), index=False)
     
     columnas_interes = [
@@ -228,26 +260,23 @@ def ejecutar_bateria_masiva(
         "Nodos_Mojados_RIS", "Ratio_Mojados_RIS", "Tiempo_Eje_RIS"
     ]
     df_promedios = df_maestro[columnas_interes].groupby("Tipo_Grafo").mean().reset_index()
+    df_promedios.to_csv(os.path.join(master_folder, f"Promedios_Globales_Bateria_{time.time()}.csv"), index=False)
     
-    path_promedios = os.path.join(master_folder, f"Promedios_Globales_Bateria_{time.time()}.csv")
-    df_promedios.to_csv(path_promedios, index=False)
-    
-    print(f"Reporte de promedios guardado en: {path_promedios}")
     print("=== TODAS LAS BATERÍAS COMPLETADAS ===")
 
 if __name__ == "__main__":
     marca_tiempo = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     path_estudio = f"simulacion_demo/simulaciones/Estudio_Multigrafo_{marca_tiempo}"
     
-    
     ejecutar_bateria_masiva(
-        metodos=['pel', 'ris'],
+        metodos=['pel', 'celf','ris'],
         configuraciones_grafos=configuraciones_estudio_peq,
-        n_simulaciones=10,
+        n_simulaciones=1,
         master_folder=f"{path_estudio}/Estudio_Grafos_PEQ",
         iteraciones_por_pelado=10,
         tasa_difusion=0.4,
         generar_visualizaciones=True,
-        iteraciones_difusion=150,
+        generar_visualizaciones_pelado=False,
+        iteraciones_difusion=350,
         umbral_nodos_final=2
     )

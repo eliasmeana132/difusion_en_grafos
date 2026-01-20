@@ -128,7 +128,7 @@ directorio_salida='simulacion_masiva/simulaciones/Estudio_Multigrafo_2026-01-20_
 ################################################################################
 # Estudio Netlogo Nodos Crecientes
 ################################################################################
-Estudio_Nodos_Crec_NETLOGO = 'simulacion_masiva/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_suc_netlogo/Metricas_Globales_Detalladas_1768874669.404449.csv'
+Estudio_Nodos_Crec_NETLOGO = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_suc_netlogo/Metricas_Globales_Detalladas_1768874669.404449.csv'
 
 generar_grafica_interactiva(
     Estudio_Nodos_Crec_NETLOGO, 
@@ -157,7 +157,7 @@ generar_grafica_interactiva(
 ################################################################################
 # Estudio Red Social Nodos Crecientes
 ################################################################################
-Estudio_Nodos_Crec_RED_SOCIAL = 'simulacion_masiva/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_usuarios_crec/Metricas_Globales_Detalladas_1768875291.145752.csv'
+Estudio_Nodos_Crec_RED_SOCIAL = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_usuarios_crec/Metricas_Globales_Detalladas_1768875291.145752.csv'
 
 generar_grafica_interactiva(
     Estudio_Nodos_Crec_RED_SOCIAL, 
@@ -186,7 +186,7 @@ generar_grafica_interactiva(
 ################################################################################
 # Estudio Grafos Pequeños
 ################################################################################
-Estudio_Grafos_PEQ = 'simulacion_masiva/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_Peq/Promedios_Globales_Bateria_1768882530.635916.csv'
+Estudio_Grafos_PEQ = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_Peq/Promedios_Globales_Bateria_1768882530.635916.csv'
 
 generar_grafica_barras(
     ruta_csv=Estudio_Grafos_PEQ, 
@@ -205,7 +205,7 @@ generar_grafica_barras(
 ################################################################################
 # Estudio Grafos Medianos
 ################################################################################
-Estudio_Grafos_MED = 'simulacion_masiva/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_Med/Promedios_Globales_Bateria_1768884392.875998.csv'
+Estudio_Grafos_MED = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_Med/Promedios_Globales_Bateria_1768884392.875998.csv'
 
 generar_grafica_barras(
     ruta_csv=Estudio_Grafos_MED, 
@@ -224,7 +224,7 @@ generar_grafica_barras(
 ################################################################################
 # Estudio Grafos Grandes
 ################################################################################
-Estudio_Grafos_GRANDES = 'simulacion_masiva/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_Grande/Promedios_Globales_Bateria_1768886841.6734238.csv'
+Estudio_Grafos_GRANDES = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_Grande/Promedios_Globales_Bateria_1768886841.6734238.csv'
 
 generar_grafica_barras(
     ruta_csv=Estudio_Grafos_GRANDES, 
@@ -243,7 +243,7 @@ generar_grafica_barras(
 ################################################################################
 # Estudio Grafos Masivos
 ################################################################################
-Estudio_Grafos_MASIVOS = 'simulacion_masiva/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_Masivo/Promedios_Globales_Bateria_1768894376.212388.csv'
+Estudio_Grafos_MASIVOS = 'simulacion_masiva/simulaciones/Estudio_Multigrafo_2026-01-20_20-06-12/Estudio_Masivo/Promedios_Globales_Bateria_1768943876.518152.csv'
 
 generar_grafica_barras(
     ruta_csv=Estudio_Grafos_MASIVOS, 
@@ -262,7 +262,7 @@ generar_grafica_barras(
 ################################################################################
 # Estudio Redes Sociales Crecientes
 ################################################################################
-Estudio_Nodos_Crec_RED_SOCIAL_2 = 'simulacion_masiva/simulaciones/Estudio_Multigrafo_2026-01-20_18-00-47/Estudio_RIS_PEL_RED_SOCIAL_NODOS_CREC/Metricas_Globales_Detalladas_1768928810.956746.csv'
+Estudio_Nodos_Crec_RED_SOCIAL_2 = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_2026-01-20_18-00-47/Estudio_RIS_PEL_RED_SOCIAL_NODOS_CREC/Metricas_Globales_Detalladas_1768928810.956746.csv'
 
 generar_grafica_interactiva(
     Estudio_Nodos_Crec_RED_SOCIAL_2, 
