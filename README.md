@@ -2,7 +2,7 @@
 
 Una librería robusta de Python para la **simulación, análisis y visualización de procesos de difusión** en redes complejas. Este kit de herramientas permite estudiar la propagación de información o masa, aplicar algoritmos de maximización de influencia y realizar una descomposición estructural avanzada mediante el método de "Pelado" (Peeling).
 
-## 🚀 Características Principales
+## Características Principales
 
 * **Motor de Difusión (Sparse):** Implementación eficiente basada en matrices dispersas de `scipy.sparse` para simular la propagación de valores entre nodos.
 * **Algoritmos de Influencia:** * **CELF (Cost-Effective Lazy Forwarding):** Optimización para modelos de cascada independiente.
