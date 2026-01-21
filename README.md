@@ -19,6 +19,7 @@ Puedes clonar este repositorio y asegurarte de tener instaladas las dependencias
 pip install networkx numpy scipy pandas plotly python-igraph
 ```
 
+Para instalar la libreria difusion_en_grafos tienes que instalarla mediante pip tambien
 ```bash
 pip install -e .
 ```
