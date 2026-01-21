@@ -8,7 +8,7 @@ Una librería robusta de Python para la **simulación, análisis y visualizació
 * **Algoritmos de Influencia:**
     * **CELF (Cost-Effective Lazy Forwarding):** Optimización para modelos de cascada independiente.
     * **RIS (Reverse Influence Sampling):** Muestreo eficiente para redes de gran escala.
-* **Estudio de Pelado (Peeling):** Algoritmo propio para identificar nodos críticos mediante la eliminación sucesiva de componentes basados en su acumulación de masa.
+    * **Estudio de Pelado (Peeling):** Algoritmo propio para identificar nodos críticos mediante la eliminación sucesiva de componentes basados en su acumulación de masa.
 * **Generador de Redes:** Creación de diversos modelos como Redes de Flujo Libre de Escala, Cascadas Estrictas, Mallas Estocásticas y Redes Sociales Realistas.
 * **Visualización 3D Interactiva:** Generación de dashboards en Plotly que permiten explorar la topología de la red y los resultados de difusión en un entorno tridimensional.
 
