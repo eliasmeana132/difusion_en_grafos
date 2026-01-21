@@ -3,6 +3,7 @@ simulaciones/
 simulacion_masiva/
 test_notebook/
 estudio_completo/
+simulacion_demo/simulaciones
 
 # --- Python ---
 __pycache__/
