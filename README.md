@@ -11,7 +11,7 @@ Una librería robusta de Python para la **simulación, análisis y visualizació
     * **Estudio de Pelado (Peeling):** Algoritmo propio para identificar nodos críticos mediante la eliminación sucesiva de componentes basados en su acumulación de masa.
 * **Generador de Redes:** Creación de diversos modelos como Redes de Flujo Libre de Escala, Cascadas Estrictas, Mallas Estocásticas y Redes Sociales Realistas.
 * **Visualización 3D Interactiva:** Generación de dashboards en Plotly que permiten explorar la topología de la red y los resultados de difusión en un entorno tridimensional.
-* **Generador de Simulaciones:** Una clase de generadores que te permite crear n simulaciones con la funcion ejecutar_bateria_masiva
+* **Generador de Simulaciones:** Una clase de generadores que te permite crear n simulaciones con la funcion `ejecutar_bateria_masiva`
 
 ## Instalación
 
