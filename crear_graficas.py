@@ -40,6 +40,7 @@ def generar_grafica_interactiva(
     etiqueta_x=None,
     etiqueta_y=None,
     etiqueta_leyenda="Variables",
+    tamanio_fuente=25,
     **kwargs
 ):
     df, columnas_validas = _validar_y_cargar_datos(ruta_csv, columna_x, columnas_y)
@@ -59,7 +60,9 @@ def generar_grafica_interactiva(
         xaxis_title=etiqueta_x or columna_x,
         yaxis_title=etiqueta_y or "Valores",
         legend_title=etiqueta_leyenda,
-        hovermode="x unified"
+        hovermode="x unified",
+        font=dict(size=tamanio_fuente),
+        title_font_size=tamanio_fuente + 4,
     )
 
     nombre_archivo = nombre_archivo or f"grafica_{columna_x}.html"
@@ -84,7 +87,8 @@ def generar_grafica_barras(
     mapa_colores=None,
     ancho=None,
     alto=None,
-    mostrar_graficas=False
+    mostrar_graficas=False,
+    tamanio_fuente=25
 ):
     df, columnas_validas = _validar_y_cargar_datos(ruta_csv, columna_x, columnas_y)
     if df is None: return
@@ -113,22 +117,26 @@ def generar_grafica_barras(
         xaxis_title=titulo_eje_x or columna_x,
         yaxis_title=titulo_eje_y,
         legend_title=titulo_leyenda,
-        hovermode="x unified"
+        hovermode="x unified",
+        font=dict(size=tamanio_fuente),
+        title_font_size=tamanio_fuente + 4
     )
+    
+    fig.update_traces(textfont_size=tamanio_fuente - 2)
 
     nombre_archivo = nombre_archivo or f"Barras_{columna_x}_{len(columnas_validas)}_vars.html"
     ruta_completa = _preparar_ruta_salida(directorio_salida, nombre_archivo)
     _finalizar_grafica(fig, ruta_completa, mostrar_graficas)
-
+    
 ################################################################################
 # Directorio Principal
 ################################################################################
-directorio_salida='simulacion_masiva/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Graficas'
+directorio_salida='simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_Muchas_Simulaciones/Graficas'
 
 ################################################################################
 # Estudio Netlogo Nodos Crecientes
 ################################################################################
-Estudio_Nodos_Crec_NETLOGO = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_suc_netlogo/Metricas_Globales_Detalladas_1768874669.404449.csv'
+Estudio_Nodos_Crec_NETLOGO = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_Muchas_Simulaciones/Estudio_suc_netlogo/Metricas_Globales_Detalladas_1768874669.404449.csv'
 
 generar_grafica_interactiva(
     Estudio_Nodos_Crec_NETLOGO, 
@@ -157,7 +165,7 @@ generar_grafica_interactiva(
 ################################################################################
 # Estudio Red Social Nodos Crecientes
 ################################################################################
-Estudio_Nodos_Crec_RED_SOCIAL = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_usuarios_crec/Metricas_Globales_Detalladas_1768875291.145752.csv'
+Estudio_Nodos_Crec_RED_SOCIAL = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_Muchas_Simulaciones/Estudio_usuarios_crec/Metricas_Globales_Detalladas_1768875291.145752.csv'
 
 generar_grafica_interactiva(
     Estudio_Nodos_Crec_RED_SOCIAL, 
@@ -186,13 +194,13 @@ generar_grafica_interactiva(
 ################################################################################
 # Estudio Grafos Pequeños
 ################################################################################
-Estudio_Grafos_PEQ = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_Peq/Promedios_Globales_Bateria_1768882530.635916.csv'
+Estudio_Grafos_PEQ = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_Muchas_Simulaciones/Estudio_Peq/Promedios_Globales_Bateria_1768882530.635916.csv'
 
 generar_grafica_barras(
     ruta_csv=Estudio_Grafos_PEQ, 
     columna_x='Tipo_Grafo', 
     columnas_y=['Ratio_Mojados_CELF', 'Ratio_Mojados_RIS','Ratio_Mojados_PEL'],
-    directorio_salida='Reportes_Visuales',
+    directorio_salida=directorio_salida,
     nombre_archivo='Estudio_Grafos_PEQ.html',
     titulo_eje_x='Configuración de Grafo Pequeño',
     titulo_eje_y='Ratio de Cobertura (Nodos Infectados)',
@@ -205,7 +213,7 @@ generar_grafica_barras(
 ################################################################################
 # Estudio Grafos Medianos
 ################################################################################
-Estudio_Grafos_MED = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_Med/Promedios_Globales_Bateria_1768884392.875998.csv'
+Estudio_Grafos_MED = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_Muchas_Simulaciones/Estudio_Med/Promedios_Globales_Bateria_1768884392.875998.csv'
 
 generar_grafica_barras(
     ruta_csv=Estudio_Grafos_MED, 
@@ -224,7 +232,7 @@ generar_grafica_barras(
 ################################################################################
 # Estudio Grafos Grandes
 ################################################################################
-Estudio_Grafos_GRANDES = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_2026-01-20_03-04-17/Estudio_Grande/Promedios_Globales_Bateria_1768886841.6734238.csv'
+Estudio_Grafos_GRANDES = 'simulacion_masiva/simulaciones/simulacion_masiva_RESULTS/simulaciones/Estudio_Multigrafo_Muchas_Simulaciones/Estudio_Grande/Promedios_Globales_Bateria_1768886841.6734238.csv'
 
 generar_grafica_barras(
     ruta_csv=Estudio_Grafos_GRANDES, 
