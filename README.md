@@ -11,7 +11,7 @@ Una librería robusta de Python para la **simulación, análisis y visualizació
 * **Generador de Redes:** Creación de diversos modelos como Redes de Flujo Libre de Escala, Cascadas Estrictas, Mallas Estocásticas y Redes Sociales Realistas.
 * **Visualización 3D Interactiva:** Generación de dashboards en Plotly que permiten explorar la topología de la red y los resultados de difusión en un entorno tridimensional.
 
-## 🛠️ Instalación
+## Instalación
 
 Puedes clonar este repositorio y asegurarte de tener instaladas las dependencias necesarias:
 
