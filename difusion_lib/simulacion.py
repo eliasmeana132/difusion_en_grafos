@@ -30,6 +30,11 @@ class ProcesadorSimulaciones:
         masa_total_concentrada=100,
         **kwargs_extra
     ):
+        params_metodos = kwargs_extra.get('params_metodos', {})
+
+        def obtener_parametro(metodo, nombre, valor_defecto):
+            return params_metodos.get(metodo, {}).get(nombre, valor_defecto)
+        
         mapeo_generadores = {
             'malla_netlogo': GeneradorRedes.generar_malla_estocastica_netlogo,
             'cascada': GeneradorRedes.generar_cascada_estricta,
@@ -139,8 +144,8 @@ class ProcesadorSimulaciones:
                 if 'celf' in metodos and len(G_survivors) > 0:
                     G_ig = ConvertidorGrafos.a_igraph(G_original)
                     k=len(G_survivors)
-                    p = 0.1
-                    mc = 100
+                    p = obtener_parametro('celf', 'p', 0.1)
+                    mc = obtener_parametro('celf', 'mc', 100)
 
                     print(f"Iniciando CELF...")
                     start_celf=time.time()
@@ -176,8 +181,8 @@ class ProcesadorSimulaciones:
                 if 'ris' in metodos and len(G_survivors) > 0:
                     G_df_edges = nx.to_pandas_edgelist(G_original)
                     k_ris = len(G_survivors)
-                    p_ris = 0.1
-                    mc_ris = 500           
+                    p_ris = obtener_parametro('ris', 'p', 0.01)
+                    mc_ris = obtener_parametro('ris', 'mc', 5000)           
                     
                     print(f"Iniciando RIS...")
                     start_ris = time.time()

@@ -53,6 +53,8 @@ class AnalizadorRIS:
     @staticmethod
     def get_RRS(G, p):   
         source = random.choice(np.unique(G['source']))
+        # nodes = np.unique(np.concatenate([G['source'], G['target']]))
+        # source = random.choice(nodes)
         g = G.copy().loc[np.random.uniform(0, 1, G.shape[0]) < p]
         
         new_nodes, RRS0 = [source], [source]   

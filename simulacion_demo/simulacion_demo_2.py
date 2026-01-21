@@ -19,5 +19,15 @@ if __name__ == "__main__":
         generar_visualizaciones=True,
         generar_visualizaciones_pelado=False,
         iteraciones_difusion=150,
-        umbral_nodos_final=2
+        umbral_nodos_final=2,
+        params_metodos={
+            'celf': {
+                'p': 0.05,
+                'mc': 300
+            },
+            'ris': {
+                'p': 0.02,
+                'mc': 2000
+            }
+        }
     )
