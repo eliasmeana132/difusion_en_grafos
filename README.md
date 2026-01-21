@@ -17,3 +17,6 @@ Puedes clonar este repositorio y asegurarte de tener instaladas las dependencias
 
 ```bash
 pip install networkx numpy scipy pandas plotly python-igraph
+
+```bash
+pip install -e.
