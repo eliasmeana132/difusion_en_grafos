@@ -16,6 +16,8 @@ Una librería robusta de Python para la **simulación, análisis y visualizació
 Puedes clonar este repositorio y asegurarte de tener instaladas las dependencias necesarias:
 
 ```bash
-pip install networkx numpy scipy pandas plotly python-igraph'''
+pip install networkx numpy scipy pandas plotly python-igraph
 
+```bash
+pip install networkx numpy scipy pandas plotly python-igraph
 pip install -e.
