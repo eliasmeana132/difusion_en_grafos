@@ -111,11 +111,11 @@ with tab_algo:
         new_strat = {}
         if strat_type == "Peeling (PEL)":
             new_strat['pel'] = {
-                'num_pelados': st.number_input("Steps", 5, 500, 50),
-                'iteraciones_por_pelado': st.number_input("Iter/Step", 10, 1000, 150),
+                'num_pelados': st.number_input("Steps", 1, 500, 50),
+                'iteraciones_por_pelado': st.number_input("Iter/Step", 1, 1000, 150),
                 'umbral_masa': st.number_input("Mass Threshold", 0.0, 10.0, 0.001, format="%.4f"),
                 'umbral_nodos_final': st.number_input("Min Nodes", 1, 100, 2),
-                'tasa_difusion': st.slider("Diff Rate", 0.1, 1.0, 0.5),
+                'tasa_difusion': st.slider("Diff Rate", 0.0, 1.0, 0.5),
                 'usar_cfc': st.checkbox("Use CFC", False)
             }
         elif strat_type == "RIS (Influence Max)":
