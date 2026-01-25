@@ -77,14 +77,14 @@ class ProcesadorSimulacionesWeb:
             return f"Peeling #{index} (Mass>{m})"
         return f"{method.upper()} #{index}"
 
-    def _ejecutar_difusion_y_metricas(self, label, seeds, G_original, params, titulo_base):
+    def _ejecutar_difusion_y_metricas(self, label, seeds, G_original, params, titulo_base, masa_total_param):
         if not seeds:
             return {}, [], []
 
         ctrl = ControladorPelado(G_original)
         
         k = len(seeds)
-        start_val = params['masa_total'] / k if k > 0 else 0
+        start_val = masa_total_param / k if k > 0 else 0
 
         _, figs, record_final = ctrl.ejecutar_estudio(
             iteraciones=params['iteraciones'],
@@ -214,8 +214,11 @@ class ProcesadorSimulacionesWeb:
                     fila_metricas["Baseline_Layers"] = len(pelados_dict)
 
                     seeds_baseline = list(G_survivors.nodes())
+
+                    masa_baseline = (n_total_nodos * default_umbral_masa)
+
                     met_baseline, figs_diff_base, _ = self._ejecutar_difusion_y_metricas(
-                        "Baseline", seeds_baseline, G_original.copy(), params_difusion_base, f"Diffusion: {base_pretty_name}"
+                        "Baseline", seeds_baseline, G_original.copy(), params_difusion_base, f"Diffusion: {base_pretty_name}", masa_baseline
                     )
                     fila_metricas.update(met_baseline)
                     if generar_visualizaciones:
@@ -237,6 +240,8 @@ class ProcesadorSimulacionesWeb:
                     
                     found_seeds = []
                     start_time_method = time.time()
+                    
+                    masa_custom_run = masa_total_concentrada
 
                     if method_name == 'pel':
                         ctrl_run = ControladorPelado(G_original.copy())
@@ -247,7 +252,7 @@ class ProcesadorSimulacionesWeb:
                             'umbral_masa': default_umbral_masa,
                             'umbral_nodos_final': default_umbral_nodos,
                             'tasa_difusion': tasa_difusion,
-                            'valor_inicio': masa_total_concentrada / n_total_nodos if n_total_nodos > 0 else 0,
+                            'valor_inicio': 1.0, 
                             'mostrar_graficos': False,
                             'exportar_resultados': False,
                             'generar_visualizaciones': generar_visualizaciones, 
@@ -259,6 +264,8 @@ class ProcesadorSimulacionesWeb:
 
                         _, figs_run, G_surv_run, _ = ctrl_run.ejecutar_estudio_pelado(**run_params)
                         found_seeds = list(G_surv_run.nodes())
+
+                        masa_custom_run = (n_total_nodos * run_params.get('umbral_masa', default_umbral_masa))
 
                         if generar_visualizaciones:
                             for f_idx, fig in enumerate(figs_run):
@@ -289,7 +296,7 @@ class ProcesadorSimulacionesWeb:
                     fila_metricas[f"{run_label}_Time"] = time_taken
 
                     met_results, figs_diff, _ = self._ejecutar_difusion_y_metricas(
-                        run_label, found_seeds, G_original.copy(), params_difusion_base, f"Diffusion: {pretty_name}"
+                        run_label, found_seeds, G_original.copy(), params_difusion_base, f"Diffusion: {pretty_name}", masa_custom_run
                     )
                     
                     fila_metricas.update(met_results)
