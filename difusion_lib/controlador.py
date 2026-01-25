@@ -19,6 +19,7 @@ class ControladorPelado:
         os.makedirs(os.path.join(ruta_destino, "reportes_datos"), exist_ok=True)
         return ruta_destino
 
+
     def ejecutar_estudio_pelado(self, num_pelados=5, iteraciones_por_pelado=150, umbral_masa=1.1, umbral_nodos_final=1,
                                   tasa_difusion=0.7, valor_inicio=1.0, 
                                   mostrar_graficos=False, exportar_resultados=False, 
@@ -42,8 +43,6 @@ class ControladorPelado:
             for n in self.G.nodes():
                 self.G.nodes[n]['val'] = valor_inicio.get(n, 1.0) if isinstance(valor_inicio, dict) else float(valor_inicio)
             
-            umbral_escalado = umbral_masa
-
             motor = MotorDifusion(self.G, tasa_difusion=tasa_difusion)
             motor.ejecutar(iteraciones=iteraciones_por_pelado)
             
@@ -64,24 +63,51 @@ class ControladorPelado:
             if usar_cfc:
                 para_quitar = AnalizadorPelado.obtener_metricas_cfc(self.G, p, self.conteo_nodos_original)
             else:
-                para_quitar = AnalizadorPelado.nodos_para_quitar(self.G, p, self.conteo_nodos_original, umbral_masa=1.0)
+                para_quitar = AnalizadorPelado.nodos_para_quitar(self.G, p, self.conteo_nodos_original, umbral_masa=umbral_masa)
             
-            a_eliminar = [s for s in para_quitar if s['masa_total'] >= umbral_escalado]
+            a_eliminar = [s for s in para_quitar if s['masa_total'] >= umbral_masa]
             
             if not a_eliminar:
                 print(f"Pelado {p+1}: Fin (Umbral no alcanzado).")
                 break
                 
-            print(f"Pelado {p+1}: Eliminando {len(a_eliminar)} componentes.")
-            if len(self.G.nodes) - len(a_eliminar) < umbral_nodos_final:
-                break
+            # print(f"Pelado {p+1}: Eliminando {len(a_eliminar)} componentes.")
+            # if len(self.G.nodes) - len(a_eliminar) < umbral_nodos_final:
+            #     while len(self.G.nodes) - len(a_eliminar)!= umbral_nodos_final:
+            #         a_eliminar.pop(0)
+            #     print(f"This many nodes left {len(self.G.nodes())}")
+            #     print(f"These are the nodes {self.G.nodes()}")
+            #     print(f"These are the nodes I want to delete {len(a_eliminar)}")
+            #     print(f"umbral {umbral_nodos_final}")
+            #     nodos_eliminados_esta_capa = []
+            #     for cfc in a_eliminar:
+            #         cfc['umbral_utilizado'] = umbral_masa
+            #         self.registro_maestro.append(cfc)
+            #         nodos_eliminados_esta_capa.extend(cfc['nodos'])
+            #         self.G.remove_nodes_from(cfc['nodos'])
+            #     break
             
+                
+            # nodos_eliminados_esta_capa = []
+            # for cfc in a_eliminar:
+            #     cfc['umbral_utilizado'] = umbral_masa
+            #     self.registro_maestro.append(cfc)
+            #     nodos_eliminados_esta_capa.extend(cfc['nodos'])
+            #     self.G.remove_nodes_from(cfc['nodos'])
+            max_eliminaciones = len(self.G.nodes) - umbral_nodos_final
+
+            if len(a_eliminar) > max_eliminaciones:
+                a_eliminar = a_eliminar[:max_eliminaciones]
+
             nodos_eliminados_esta_capa = []
             for cfc in a_eliminar:
-                cfc['umbral_utilizado'] = umbral_escalado
+                cfc['umbral_utilizado'] = umbral_masa
                 self.registro_maestro.append(cfc)
                 nodos_eliminados_esta_capa.extend(cfc['nodos'])
                 self.G.remove_nodes_from(cfc['nodos'])
+
+            if len(self.G.nodes) <= umbral_nodos_final:
+                break
             
             pelados[p+1] = nodos_eliminados_esta_capa
         
@@ -94,6 +120,9 @@ class ControladorPelado:
                 )
             self.exportar_resumen(nombre_resumen)
             
+        # print(f"Final Nodes {self.G.nodes()}")
+        print(f"Ammount of survivors {len(self.G.nodes())}")
+        
         return self.registro_maestro, figuras_interactivas, self.G, pelados
     
     def ejecutar_estudio(self, iteraciones=150, nodos=[], tasa_difusion=0.7, valor_inicio=1.0, 
@@ -123,7 +152,6 @@ class ControladorPelado:
         
         max_node_id = max(self.nodos_originales) if self.nodos_originales else 0
         record = [0] * (max_node_id + 1)
-
         for i in range(iteraciones):
             motor.ejecutar(iteraciones=1)
             for n in self.G.nodes:
@@ -152,7 +180,7 @@ class ControladorPelado:
                     self.ruta_raiz
                 )
             self.exportar_resumen(nombre_resumen)
-            
+
         return self.registro_maestro, figuras_interactivas, record
 
     def exportar_resumen(self, nombre_archivo):

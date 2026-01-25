@@ -1,40 +1,140 @@
 import os
+import time
+import math
+import statistics
+import re
+import uuid
+import numpy as np
 import pandas as pd
 import networkx as nx
-from datetime import datetime
-from difusion_lib import *
-import time
+import matplotlib.pyplot as plt
+from difusion_lib import (
+    GeneradorRedes, 
+    ControladorPelado, 
+    AnalizadorCELF, 
+    AnalizadorRIS, 
+    VisualizadorPelado, 
+    ConvertidorGrafos
+)
 
 class ProcesadorSimulaciones:
     def __init__(self):
         pass
 
-    def cantidad_nodos_mojados(self, record):
-        return len(set(record))
+    @staticmethod
+    def cantidad_nodos_mojados(record):
+        return np.count_nonzero(record)
+    
+    @staticmethod
+    def coeficiente_variacion(record):
+        arr = np.array(record)
+        arr = arr[arr > 0]
+        if len(arr) == 0:
+            return 0.0
+        mean = np.mean(arr)
+        return np.std(arr) / mean if mean != 0 else 0.0
+
+    @staticmethod
+    def uniformidad_entropia(record):
+        arr = np.array(record)
+        arr = arr[arr > 0]
+        total = np.sum(arr)
+        if total == 0:
+            return 0.0
+        probs = arr / total
+        return -np.sum(probs * np.log(probs))
+
+    @staticmethod
+    def gini(record):
+        arr = np.array(record)
+        arr = arr[arr > 0]
+        arr = np.sort(arr)
+        n = len(arr)
+        if n == 0:
+            return 0.0
+        index = np.arange(1, n + 1)
+        return (2 * np.sum(index * arr)) / (n * np.sum(arr)) - (n + 1) / n
+
+    def _generate_run_label(self, method, params, index):
+        if method == 'celf':
+            return f"CELF_{index:02d}_p{params.get('p', 0.1)}_k{params.get('k', 'Auto')}"
+        elif method == 'ris':
+            return f"RIS_{index:02d}_p{params.get('p', 0.01)}_k{params.get('k', 'Auto')}"
+        elif method == 'pel':
+            m = params.get('umbral_masa', 1.0)
+            i = params.get('iteraciones_por_pelado', 150)
+            return f"PEL_{index:02d}_M{m}_I{i}"
+        return f"{method.upper()}_{index:02d}"
+
+    def _generate_pretty_name(self, method, params, index):
+        if method == 'baseline':
+            return "Baseline (Calibration)"
+        elif method == 'celf':
+            return f"CELF #{index}"
+        elif method == 'ris':
+            return f"RIS #{index}"
+        elif method == 'pel':
+            m = params.get('umbral_masa', 1.0)
+            return f"Peeling #{index} (Mass>{m})"
+        return f"{method.upper()} #{index}"
+
+    def _ejecutar_difusion_y_metricas(self, label, seeds, G_original, params, folder_base, titulo_base):
+        if not seeds:
+            return {}, [], []
+
+        ctrl = ControladorPelado(G_original)
+        folder_export = os.path.join(folder_base, f"Difusion_{label}")
+        
+        k = len(seeds)
+        start_val = params['masa_total'] / k if k > 0 else 0
+
+        _, figs, record_final = ctrl.ejecutar_estudio(
+            iteraciones=params['iteraciones'],
+            nodos=list(seeds),
+            tasa_difusion=params['tasa'],
+            valor_inicio=start_val,
+            exportar_resultados=params['exportar'],
+            carpeta_exportacion=folder_export,
+            generar_visualizaciones=params['visualizar']
+        )
+
+        for i, fig in enumerate(figs):
+            state_name = "Initial State" if i == 0 else "Spread Result"
+            fig.layout.title.text = f"{titulo_base} | {state_name}"
+
+        n_total = len(G_original)
+        n_mojados = self.cantidad_nodos_mojados(record_final)
+        
+        metricas = {
+            f"Nodos_Mojados_{label}": n_mojados,
+            f"Ratio_Mojados_{label}": n_mojados / n_total if n_total > 0 else 0.0,
+            f"Entropia_{label}": self.uniformidad_entropia(record_final),
+            f"Gini_{label}": self.gini(record_final),
+            f"cv_{label}": self.coeficiente_variacion(record_final),
+            f"Semillas_{label}": str(list(seeds)),
+            f"K_{label}": k
+        }
+        
+        return metricas, figs, record_final
 
     def ejecutar_bateria_masiva(
         self,
-        metodos=['pel', 'celf', 'ris'],
+        execution_plan,
         configuraciones_grafos=[{'tipo': 'malla_netlogo','params': {'dim': 10, 'link_chance': 40}}], 
+        graph=nx.DiGraph(),
         n_simulaciones=5, 
-        generar_visualizaciones=False,
-        generar_visualizaciones_pelado=False,
         master_folder="simulaciones", 
-        usar_cfc=False,
+        generar_visualizaciones=False,
+        generar_visualizaciones_pelado=False, 
+        exportar_resultados=True,
         tasa_difusion=0.2, 
-        num_pelados=10, 
-        iteraciones_por_pelado=150, 
         iteraciones_difusion=150, 
-        umbral_masa=1.0, 
-        umbral_nodos_final=1, 
         masa_total_concentrada=100,
-        **kwargs_extra
+        default_iteraciones_pelado=150,
+        default_umbral_masa=1.0,
+        default_umbral_nodos=1,
+        usar_cfc=False
     ):
-        params_metodos = kwargs_extra.get('params_metodos', {})
-
-        def obtener_parametro(metodo, nombre, valor_defecto):
-            return params_metodos.get(metodo, {}).get(nombre, valor_defecto)
-        
         mapeo_generadores = {
             'malla_netlogo': GeneradorRedes.generar_malla_estocastica_netlogo,
             'cascada': GeneradorRedes.generar_cascada_estricta,
@@ -48,204 +148,191 @@ class ProcesadorSimulaciones:
             os.makedirs(master_folder)
 
         resumen_global = []
+        
+        params_difusion_base = {
+            'iteraciones': iteraciones_difusion,
+            'tasa': tasa_difusion,
+            'masa_total': masa_total_concentrada,
+            'exportar': exportar_resultados,
+            'visualizar': generar_visualizaciones
+        }
+        
+        isCustomGraph = len(graph.nodes()) != 0
+        if isCustomGraph:
+            configuraciones_grafos = [1]
 
-        for config in configuraciones_grafos:
-            tipo = config['tipo']
-            params_especificos = config.get('params', {})
+        for batch_idx, config in enumerate(configuraciones_grafos):
+            if not isCustomGraph:
+                tipo = config['tipo']
+                params_especificos = config.get('params', {})
+                params_raw_str = str(params_especificos)
+            else: 
+                tipo = 'Custom'
+                params_especificos = 'Custom'
+                params_raw_str = "Custom"
             
-            folder_tipo = os.path.join(master_folder, f"Estudio_{tipo}")
-            if not os.path.exists(folder_tipo): os.makedirs(folder_tipo)
+            safe_params_str = re.sub(r'[<>:"/\\|?*{}\',; \[\]]+', '_', params_raw_str)
+            safe_params_str = re.sub(r'_+', '_', safe_params_str).strip('_')
+
+            if exportar_resultados:
+                folder_tipo = os.path.join(master_folder, f"Estudio_{tipo}_{safe_params_str}")
+                if not os.path.exists(folder_tipo): 
+                    os.makedirs(folder_tipo)
+            else:
+                folder_tipo = ""
 
             resumen_metricas = []     
+            mega_recolector_figs = {} 
 
             print(f"\n" + "="*50)
-            print(f"INICIANDO BATERÍA: {tipo.upper()} ({n_simulaciones} sims)")
+            print(f"INICIANDO BATERÍA {batch_idx+1}: {tipo.upper()} ({n_simulaciones} sims)")
             print(f"Parámetros: {params_especificos}")
             print("="*50)
-            mega_recolector_figs = {} 
             
             for i in range(n_simulaciones):
                 sim_id = f"Simulacion_{i+1:03d}" 
                 print(f">>> {tipo} - {sim_id}")
-
-                func_generadora = mapeo_generadores[tipo]
-                resultado_generador = func_generadora(**params_especificos)
-                G_original = resultado_generador[0] if isinstance(resultado_generador, tuple) else resultado_generador
+                
+                if not isCustomGraph:
+                    func_generadora = mapeo_generadores[tipo]
+                    resultado_generador = func_generadora(**params_especificos)
+                    G_original = resultado_generador[0] if isinstance(resultado_generador, tuple) else resultado_generador
+                else: 
+                    G_original = graph
+                    
                 n_total_nodos = len(G_original)
                 
-                figs_peel = []
-                figs_PEL = []
-                figs_CELF = []
-                figs_RIS = []
-                
-                n_mojados_PEL = 0
-                ratio_val_PEL = 0.0
-                tiempo_eje_PEL = 0.0
-                
-                n_mojados_CELF = 0
-                ratio_val_CELF = 0.0
-                tiempo_eje_CELF = 0.0
-                seeds_celf = []
+                folder_sim = os.path.join(folder_tipo, sim_id) if exportar_resultados else ""
 
-                n_mojados_RIS = 0
-                ratio_val_RIS = 0.0
-                tiempo_eje_RIS = 0.0
-                seeds_ris = []
-                
-                ############################################
-                # ESTUDIO PELADO
-                ############################################
-                ctrl_peel = ControladorPelado(G_original)
-                folder_sim = os.path.join(folder_tipo, sim_id)
-                
-                start_time = time.time()
+                ctrl_peel = ControladorPelado(G_original.copy()) 
+                start_peel_base = time.time()
                 _, figs_peel, G_survivors, pelados_dict = ctrl_peel.ejecutar_estudio_pelado(
                     generar_visualizaciones=generar_visualizaciones_pelado,
-                    num_pelados=num_pelados,
-                    iteraciones_por_pelado=iteraciones_por_pelado,
-                    umbral_masa=umbral_masa,
-                    umbral_nodos_final=umbral_nodos_final, 
+                    num_pelados=10,
+                    iteraciones_por_pelado=default_iteraciones_pelado,
+                    umbral_masa=default_umbral_masa,
+                    umbral_nodos_final=default_umbral_nodos, 
                     tasa_difusion=tasa_difusion,
-                    exportar_resultados=True,
-                    carpeta_exportacion=folder_sim,
+                    exportar_resultados=exportar_resultados,
+                    carpeta_exportacion=os.path.join(folder_sim, "Baseline_Peel"),
                     usar_cfc=usar_cfc
                 )
-                tiempo_eje_PEL = time.time() - start_time
-                
-                for idx, fig in enumerate(figs_peel):
-                    fig.layout.title.text = f"Peel Step {idx+1}"
-                
-                if 'pel' in metodos:
-                    ctrl_PEL = ControladorPelado(G_original)
-                    folder_PEL = os.path.join(folder_sim, "Difusion_PEL")
-                    
-                    _, figs_PEL, record_final_PEL = ctrl_PEL.ejecutar_estudio(
-                        iteraciones=iteraciones_difusion,
-                        nodos=list(G_survivors.nodes()), 
-                        tasa_difusion=tasa_difusion,
-                        valor_inicio=masa_total_concentrada/len(G_survivors) if len(G_survivors)>0 else 0,             
-                        exportar_resultados=True,
-                        carpeta_exportacion=folder_PEL,
-                        generar_visualizaciones=generar_visualizaciones
-                    )
-                    
-                    for fig in figs_PEL:
-                        fig.layout.title.text = "Difusión: Método PEL (Peel)"
-                    
-                    n_mojados_PEL = self.cantidad_nodos_mojados(record_final_PEL)
-                    ratio_val_PEL = n_mojados_PEL / n_total_nodos if n_total_nodos > 0 else 0.0
-                ############################################
-                # FIN ESTUDIO PEL
-                ############################################
-                
-                ############################################
-                # ESTUDIO CELF
-                ############################################
-                if 'celf' in metodos and len(G_survivors) > 0:
-                    G_ig = ConvertidorGrafos.a_igraph(G_original)
-                    k=len(G_survivors)
-                    p = obtener_parametro('celf', 'p', 0.1)
-                    mc = obtener_parametro('celf', 'mc', 100)
+                base_k = len(G_survivors.nodes()) 
 
-                    print(f"Iniciando CELF...")
-                    start_celf=time.time()
-                    seeds_celf, spreads, times, lookups = AnalizadorCELF.ejecutar_celf(g=G_ig, k=k, p=p, mc=mc)
-                    tiempo_eje_CELF=time.time()-start_celf
+                base_pretty_name = self._generate_pretty_name("baseline", {}, 0)
 
-                    ctrl_CELF = ControladorPelado(G_original)
-                    folder_CELF = os.path.join(folder_sim, "Difusion_CELF")
-                    
-                    _, figs_CELF, record_final_CELF = ctrl_CELF.ejecutar_estudio(
-                        iteraciones=iteraciones_difusion,
-                        nodos=list(seeds_celf),
-                        tasa_difusion=tasa_difusion,
-                        valor_inicio=masa_total_concentrada/len(G_survivors) if len(G_survivors)>0 else 0,
-                        exportar_resultados=True,
-                        carpeta_exportacion=folder_CELF,
-                        generar_visualizaciones=generar_visualizaciones
-                    )
-                    
-                    for fig in figs_CELF:
-                        fig.layout.title.text = "Difusión: Método CELF"
-                    
-                    n_mojados_CELF = self.cantidad_nodos_mojados(record_final_CELF)
-                    ratio_val_CELF = n_mojados_CELF / n_total_nodos if n_total_nodos > 0 else 0.0
-                    
-                ############################################
-                # FIN ESTUDIO CELF
-                ############################################
-                
-                ############################################
-                # ESTUDIO RIS
-                ############################################
-                if 'ris' in metodos and len(G_survivors) > 0:
-                    G_df_edges = nx.to_pandas_edgelist(G_original)
-                    k_ris = len(G_survivors)
-                    p_ris = obtener_parametro('ris', 'p', 0.01)
-                    mc_ris = obtener_parametro('ris', 'mc', 5000)           
-                    
-                    print(f"Iniciando RIS...")
-                    start_ris = time.time()
-                    seeds_ris, times_ris = AnalizadorRIS.ris(G=G_df_edges, k=k_ris, p=p_ris, mc=mc_ris)
-                    tiempo_eje_RIS = time.time() - start_ris
+                if generar_visualizaciones and generar_visualizaciones_pelado:
+                    for f_idx, fig in enumerate(figs_peel):
+                        fig.layout.title.text = f"Peeling Phase: {base_pretty_name} | Layer {f_idx+1}"
+                    mega_recolector_figs[f"{sim_id} - PeelLayers - Baseline"] = figs_peel
 
-                    ctrl_RIS = ControladorPelado(G_original)
-                    folder_RIS = os.path.join(folder_sim, "Difusion_RIS")
-                    
-                    _, figs_RIS, record_final_RIS = ctrl_RIS.ejecutar_estudio(
-                        iteraciones=iteraciones_difusion,
-                        nodos=list(seeds_ris), 
-                        tasa_difusion=tasa_difusion,
-                        valor_inicio=masa_total_concentrada/len(G_survivors) if len(G_survivors)>0 else 0,             
-                        exportar_resultados=True,
-                        carpeta_exportacion=folder_RIS,
-                        generar_visualizaciones=generar_visualizaciones
-                    )
-                    
-                    for fig in figs_RIS:
-                        fig.layout.title.text = "Difusión: Método RIS"
-                    
-                    n_mojados_RIS = self.cantidad_nodos_mojados(record_final_RIS)
-                    ratio_val_RIS = n_mojados_RIS / n_total_nodos if n_total_nodos > 0 else 0.0
-                
-                ############################################
-                # FIN ESTUDIO RIS
-                ############################################
-                
-                ############################################
-                # MEGA DASHBOARD 
-                ############################################
-                if generar_visualizaciones:
-                    mega_recolector_figs[f"{sim_id} - Estudio Pelado"] = figs_peel
-                    
-                    if 'pel' in metodos:
-                        mega_recolector_figs[f"{sim_id} - Difusion - PEL"] = figs_PEL
-                    
-                    if 'celf' in metodos:
-                        mega_recolector_figs[f"{sim_id} - Difusion - CELF"] = figs_CELF
-                    
-                    if 'ris' in metodos:
-                        mega_recolector_figs[f"{sim_id} - Difusion - RIS"] = figs_RIS
-
-                resumen_metricas.append({
+                fila_metricas = {
                     "Simulacion_ID": sim_id,
-                    "Tipo_Grafo": tipo, 
+                    "Tipo_Grafo": tipo + str(params_raw_str), 
+                    "Batch_ID": batch_idx,
                     "Total_Nodos_Inicial": n_total_nodos,
-                    "Total_Capas_Peladas": len(pelados_dict),
-                    "Cantidad_Semillas_PEL": len(G_survivors.nodes),
-                    "Semillas_PEL": str(list(G_survivors.nodes())),
-                    "Nodos_Mojados_PEL": n_mojados_PEL,
-                    "Ratio_Mojados_PEL": ratio_val_PEL,
-                    "Tiempo_Eje_PEL": tiempo_eje_PEL,
-                    "Semillas_CELF": str(seeds_celf),
-                    "Nodos_Mojados_CELF": n_mojados_CELF,
-                    "Ratio_Mojados_CELF": ratio_val_CELF,
-                    "tiempo_eje_CELF": tiempo_eje_CELF,
-                    "Semillas_RIS": str(seeds_ris),
-                    "Nodos_Mojados_RIS": n_mojados_RIS,
-                    "Ratio_Mojados_RIS": ratio_val_RIS,
-                    "Tiempo_Eje_RIS": tiempo_eje_RIS,
-                })
+                    "Baseline_Survivors_K": base_k,
+                    "Baseline_Layers": len(pelados_dict)
+                }
+
+                seeds_baseline = list(G_survivors.nodes())
+                met_baseline, figs_diff_base, _ = self._ejecutar_difusion_y_metricas(
+                    "Baseline", seeds_baseline, G_original.copy(), params_difusion_base, folder_sim, f"Diffusion Simulation: {base_pretty_name}"
+                )
+                fila_metricas.update(met_baseline)
+                if generar_visualizaciones:
+                    mega_recolector_figs[f"{sim_id} - Difusion - Baseline"] = figs_diff_base
+
+                method_counters = {'pel': 0, 'celf': 0, 'ris': 0}
+
+                for plan_item in execution_plan:
+                    method_name = list(plan_item.keys())[0]
+                    method_params = plan_item[method_name]
+                    
+                    method_counters[method_name] = method_counters.get(method_name, 0) + 1
+                    current_idx = method_counters[method_name]
+                    
+                    run_label = self._generate_run_label(method_name, method_params, current_idx)
+                    pretty_name = self._generate_pretty_name(method_name, method_params, current_idx)
+                    
+                    print(f"   Running {pretty_name}...")
+
+                    found_seeds = []
+                    start_time_method = time.time()
+
+                    if method_name == 'pel':
+                        ctrl_run = ControladorPelado(G_original.copy())
+                        
+                        user_path = method_params.get('carpeta_exportacion', folder_sim)
+                        user_filename = method_params.get('nombre_resumen', f"resumen_pelado.csv")
+                        
+                        unique_id = str(uuid.uuid4())[:8]
+                        unique_export_path = os.path.join(user_path, f"Sim_{i+1:03d}_{run_label}_{unique_id}")
+                        if not os.path.exists(unique_export_path):
+                            os.makedirs(unique_export_path)
+
+                        if user_filename.endswith('.csv'):
+                            unique_filename = user_filename.replace('.csv', f"_{run_label}_{unique_id}.csv")
+                        else:
+                            unique_filename = f"{user_filename}_{run_label}_{unique_id}.csv"
+
+                        run_params = {
+                            'num_pelados': 10,
+                            'iteraciones_por_pelado': default_iteraciones_pelado,
+                            'umbral_masa': default_umbral_masa,
+                            'umbral_nodos_final': default_umbral_nodos,
+                            'tasa_difusion': tasa_difusion,
+                            'valor_inicio': masa_total_concentrada / n_total_nodos if n_total_nodos > 0 else 0,
+                            'mostrar_graficos': False,
+                            'exportar_resultados': False,
+                            'generar_visualizaciones': generar_visualizaciones, 
+                            'usar_cfc': usar_cfc
+                        }
+                        
+                        run_params.update(method_params)
+                        run_params['carpeta_exportacion'] = unique_export_path
+                        run_params['nombre_resumen'] = unique_filename
+
+                        _, figs_run, G_surv_run, _ = ctrl_run.ejecutar_estudio_pelado(**run_params)
+                        found_seeds = list(G_surv_run.nodes())
+
+                        if generar_visualizaciones:
+                            for f_idx, fig in enumerate(figs_run):
+                                fig.layout.title.text = f"Peeling Phase: {pretty_name} | Layer {f_idx+1}"
+                            mega_recolector_figs[f"{sim_id} - PeelLayers - {run_label}"] = figs_run
+
+                    elif method_name == 'celf':
+                        target_k = method_params.get('k', base_k)
+                        if target_k == 0: target_k = 1
+
+                        G_ig = ConvertidorGrafos.a_igraph(G_original)
+                        p_celf = method_params.get('p', 0.1)
+                        mc_celf = method_params.get('mc', 100)
+                        
+                        found_seeds, _, _, _ = AnalizadorCELF.ejecutar_celf(g=G_ig, k=target_k, p=p_celf, mc=mc_celf)
+
+                    elif method_name == 'ris':
+                        target_k = method_params.get('k', base_k)
+                        if target_k == 0: target_k = 1
+
+                        G_df_edges = nx.to_pandas_edgelist(G_original)
+                        p_ris = method_params.get('p', 0.01)
+                        mc_ris = method_params.get('mc', 1000)
+
+                        found_seeds, _ = AnalizadorRIS.ris(G=G_df_edges, k=target_k, p=p_ris, mc=mc_ris)
+
+                    time_taken = time.time() - start_time_method
+                    fila_metricas[f"Time_Exec_{run_label}"] = time_taken
+
+                    met_results, figs_diff, _ = self._ejecutar_difusion_y_metricas(
+                        run_label, found_seeds, G_original.copy(), params_difusion_base, folder_sim, f"Diffusion Simulation: {pretty_name}"
+                    )
+                    
+                    fila_metricas.update(met_results)
+                    if generar_visualizaciones:
+                        mega_recolector_figs[f"{sim_id} - Difusion - {run_label}"] = figs_diff
+
+                resumen_metricas.append(fila_metricas)
 
             if generar_visualizaciones:
                 VisualizadorPelado.exportar_mega_dashboard(
@@ -253,22 +340,31 @@ class ProcesadorSimulaciones:
                     folder_tipo,
                     f"Dashboard_Global_{tipo}.html"
                 )
+            
+            if exportar_resultados:
+                df_tipo = pd.DataFrame(resumen_metricas)
+                base_cols = ["Simulacion_ID", "Tipo_Grafo", "Batch_ID", "Total_Nodos_Inicial", "Baseline_Survivors_K"]
+                metric_cols = [c for c in df_tipo.columns if c not in base_cols]
+                metric_cols.sort()
+                final_cols = base_cols + metric_cols
+                
+                df_tipo = df_tipo.reindex(columns=final_cols)
+                
+                csv_unique_suffix = f"{int(time.time())}_{batch_idx}"
+                df_tipo.to_csv(os.path.join(folder_tipo, f"Metricas_{tipo}_{csv_unique_suffix}.csv"), index=False)
+                resumen_global.append(df_tipo)
 
-            df_tipo = pd.DataFrame(resumen_metricas)
-            df_tipo.to_csv(os.path.join(folder_tipo, f"Metricas_{tipo}_{time.time()}.csv"), index=False)
-            resumen_global.append(df_tipo)
-
-        print("\nGenerando reportes consolidados...")
-        df_maestro = pd.concat(resumen_global, ignore_index=True)
-        df_maestro.to_csv(os.path.join(master_folder, f"Metricas_Globales_Detalladas_{time.time()}.csv"), index=False)
-        
-        columnas_interes = [
-            "Tipo_Grafo", "Total_Nodos_Inicial", "Total_Capas_Peladas", 
-            "Cantidad_Semillas_PEL", "Nodos_Mojados_PEL", "Ratio_Mojados_PEL", "Tiempo_Eje_PEL",
-            "Nodos_Mojados_CELF", "Ratio_Mojados_CELF", "tiempo_eje_CELF",
-            "Nodos_Mojados_RIS", "Ratio_Mojados_RIS", "Tiempo_Eje_RIS"
-        ]
-        df_promedios = df_maestro[columnas_interes].groupby("Tipo_Grafo").mean().reset_index()
-        df_promedios.to_csv(os.path.join(master_folder, f"Promedios_Globales_Bateria_{time.time()}.csv"), index=False)
-        
-        print("=== TODAS LAS BATERÍAS COMPLETADAS ===")
+        if exportar_resultados and resumen_global:
+            print("\nGenerando reportes consolidados...")
+            df_maestro = pd.concat(resumen_global, ignore_index=True)
+            df_maestro.to_csv(os.path.join(master_folder, f"Metricas_Globales_Master_{int(time.time())}.csv"), index=False)
+            
+            numeric_cols = df_maestro.select_dtypes(include=[np.number]).columns.tolist()
+            cols_to_group = ["Tipo_Grafo"]
+            if "Batch_ID" in df_maestro.columns:
+                 pass
+            
+            if cols_to_group:
+                existing_groups = [c for c in cols_to_group if c in df_maestro.columns]
+                df_promedios = df_maestro.groupby(existing_groups)[numeric_cols].mean().reset_index()
+                df_promedios.to_csv(os.path.join(master_folder, f"Promedios_Globales_{int(time.time())}.csv"), index=False)

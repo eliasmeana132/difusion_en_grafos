@@ -49,3 +49,4 @@ class ConvertidorGrafos:
             G_nx.nodes[nombre].update(atributos)
             
         return G_nx
+
